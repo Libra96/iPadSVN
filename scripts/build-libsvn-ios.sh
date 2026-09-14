@@ -196,7 +196,10 @@ build_apr_util() {
 build_serf() {
   log "Building serf..."
   cd "${DEPS_DIR}/serf"
-  make clean >/dev/null 2>&1 || true
+  # Serf uses SCons; leftover .o/.os from the other iOS platform ends up in
+  # libserf-1.a and breaks xcodebuild -create-xcframework (mixed platforms).
+  scons -c >/dev/null 2>&1 || true
+  find . \( -name '*.o' -o -name '*.os' -o -name 'libserf-1*.a' -o -name 'libserf-1*.dylib' \) -delete 2>/dev/null || true
 
   # serf SCons expects APR/APU install prefixes (finds bin/apr-1-config inside).
   export SERF_PREFIX="${PREFIX}"
@@ -216,6 +219,7 @@ build_serf() {
 build_sqlite_amalgamation() {
   log "Building sqlite amalgamation..."
   cd "${DEPS_DIR}/subversion-${SVN_VERSION}/sqlite-amalgamation"
+  rm -f sqlite3.o
   ${CC} -c -o sqlite3.o sqlite3.c \
     -DSQLITE_THREADSAFE=1 -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_FTS4 \
     -DSQLITE_ENABLE_RTREE -DSQLITE_ENABLE_UNLOCK_NOTIFY \
@@ -224,14 +228,42 @@ build_sqlite_amalgamation() {
   cp sqlite3.h sqlite3ext.h "${PREFIX}/include/"
 }
 
+patch_subversion_cmdline_system() {
+  local cmdline="${DEPS_DIR}/subversion-${SVN_VERSION}/subversion/libsvn_subr/cmdline.c"
+  # iOS forbids system(); editor support is disabled via --with-editor=none anyway.
+  python3 - "${cmdline}" <<'PY'
+import os
+import sys
+
+path = sys.argv[1]
+bak = f"{path}.bak"
+old = "  sys_err = system(cmd);"
+new = "  sys_err = -1; (void)cmd; /* iOS: system() unavailable */"
+if os.path.exists(bak):
+    text = open(bak, encoding="utf-8").read()
+else:
+    text = open(path, encoding="utf-8").read()
+    open(bak, "w", encoding="utf-8").write(text)
+count = text.count(old)
+if count == 2:
+    open(path, "w", encoding="utf-8").write(text.replace(old, new))
+elif count == 0 and new in text:
+    pass  # already patched for this source tree
+else:
+    sys.exit(f"Expected 2 system(cmd) sites in cmdline.c, found {count}")
+PY
+}
+
 patch_subversion_configure_expat() {
   local cfg="${DEPS_DIR}/subversion-${SVN_VERSION}/configure"
   # Cross-compiling cannot reliably pass Subversion's Expat link/compile probe.
   # BSD sed breaks on PREFIX paths containing slashes; use Python instead.
   python3 - "${cfg}" "${PREFIX}" <<'PY'
+import os
 import sys
 
 path, prefix = sys.argv[1], sys.argv[2]
+bak = f"{path}.bak"
 old = '      as_fn_error $? "Expat not found" "$LINENO" 5'
 new = (
     f'      svn_lib_expat=yes; SVN_XML_INCLUDES="-I{prefix}/include"; '
@@ -239,10 +271,13 @@ new = (
     r'{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes (iOS cross)" >&5; '
     r'$as_echo "yes" >&6; }'
 )
-text = open(path, encoding="utf-8").read()
+if os.path.exists(bak):
+    text = open(bak, encoding="utf-8").read()
+else:
+    text = open(path, encoding="utf-8").read()
+    open(bak, "w", encoding="utf-8").write(text)
 if old not in text:
     sys.exit("Expat probe line not found in configure")
-open(f"{path}.bak", "w", encoding="utf-8").write(text)
 open(path, "w", encoding="utf-8").write(text.replace(old, new, 1))
 PY
 }
@@ -252,6 +287,8 @@ build_subversion() {
   cd "${DEPS_DIR}/subversion-${SVN_VERSION}"
   make clean >/dev/null 2>&1 || true
   patch_subversion_configure_expat
+  patch_subversion_cmdline_system
+  rm -f config.cache config.status
 
   ./configure \
     --host="${HOST}" \
@@ -263,6 +300,8 @@ build_subversion() {
     --without-javahl \
     --without-berkeley-db \
     --without-sasl \
+    --disable-keychain \
+    --with-lz4=internal \
     --with-utf8proc=internal \
     --with-serf="${PREFIX}" \
     --with-apr="${PREFIX}" \
@@ -278,14 +317,22 @@ build_subversion() {
     ac_cv_path_EGREP=/usr/bin/grep \
     ac_cv_path_AWK=/usr/bin/awk
 
+  make fast-clean >/dev/null 2>&1 || true
+
+  # Build/install libsvn libraries only. A full `make` also builds bin/test/tools
+  # targets (svn, afl-x509, ...) that fail to link on iOS without expat in the
+  # final link line, but those binaries are not needed for the embedded client.
   make -j"$(sysctl -n hw.ncpu)" \
-    CFLAGS="${CFLAGS} -include ${ROOT}/scripts/ios-svn-compat.h -I${PREFIX}/include/apr-1 -I${PREFIX}/include/apr-util-1" \
-    install
+    CFLAGS="${CFLAGS} -I${PREFIX}/include/apr-1 -I${PREFIX}/include/apr-util-1" \
+    fsmod-lib ramod-lib serf-lib lib
+
+  make install-lib install-include install-fsmod-lib install-ramod-lib install-serf-lib
 }
 
 merge_static_libs() {
   log "Merging static libraries into libsvn_merged.a..."
   cd "${PREFIX}/lib"
+  rm -f ./*.dylib
   local libs=()
   shopt -s nullglob
   for lib in libsvn_*.a libapr*.a libserf-*.a libexpat.a libz.a libsqlite3.a libssl.a libcrypto.a; do
@@ -365,19 +412,25 @@ build_for_platform() {
 }
 
 create_xcframework() {
-  log "Creating libsvn.xcframework..."
+  log "Creating libsvn.xcframework (device-only for iPad sideload)..."
   local device_lib="${INSTALL_ROOT}/iphoneos-arm64/lib/libsvn_merged.a"
-  local sim_lib="${INSTALL_ROOT}/iphonesimulator-arm64/lib/libsvn_merged.a"
-  local headers="${INSTALL_ROOT}/iphoneos-arm64/include"
+  local include_root="${INSTALL_ROOT}/iphoneos-arm64/include"
+  local headers="${OUTPUT_DIR}/xcframework-headers"
 
   [[ -f "${device_lib}" ]] || die "Missing device library: ${device_lib}"
-  [[ -f "${sim_lib}" ]] || die "Missing simulator library: ${sim_lib}"
-  [[ -d "${headers}" ]] || die "Missing headers: ${headers} (expected after make install)"
+  [[ -d "${include_root}" ]] || die "Missing headers: ${include_root}"
+
+  # Flatten svn/apr headers so #include "svn_client.h" / "apr_pools.h" work.
+  rm -rf "${headers}"
+  mkdir -p "${headers}"
+  cp "${include_root}/subversion-1/"*.h "${headers}/"
+  cp "${include_root}/apr-1/"*.h "${headers}/" 2>/dev/null || true
+  cp "${include_root}/apr-util-1/"*.h "${headers}/" 2>/dev/null || true
+  [[ -f "${headers}/svn_client.h" ]] || die "svn_client.h missing after flattening headers"
 
   rm -rf "${OUTPUT_DIR}/libsvn.xcframework"
   xcodebuild -create-xcframework \
     -library "${device_lib}" -headers "${headers}" \
-    -library "${sim_lib}" -headers "${headers}" \
     -output "${OUTPUT_DIR}/libsvn.xcframework"
 
   log "XCFramework created at ${OUTPUT_DIR}/libsvn.xcframework"
@@ -407,8 +460,9 @@ main() {
   log "Root: ${ROOT}"
 
   prepare_sources
+  # Physical iPad sideload only needs iphoneos; skip simulator to avoid mixed
+  # static object contamination in merged archives during cross-builds.
   build_for_platform "iphoneos" "arm64"
-  build_for_platform "iphonesimulator" "arm64"
   create_xcframework
   write_summary
 

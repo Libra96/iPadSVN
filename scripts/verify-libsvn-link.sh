@@ -52,7 +52,7 @@ EOF
 
 log "Compiling minimal_svn_test.c..."
 ${CC} -c "${VERIFY_DIR}/minimal_svn_test.c" -o "${VERIFY_DIR}/minimal_svn_test.o" \
-  -I"${HEADERS}/subversion" \
+  -I"${HEADERS}/subversion-1" \
   -I"${PREFIX}/include/apr-1" \
   -I"${PREFIX}/include/apr-util-1" \
   2>&1 | tee -a "${LOG_FILE}"

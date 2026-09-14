@@ -228,17 +228,25 @@ patch_subversion_cmdline_system() {
   local cmdline="${DEPS_DIR}/subversion-${SVN_VERSION}/subversion/libsvn_subr/cmdline.c"
   # iOS forbids system(); editor support is disabled via --with-editor=none anyway.
   python3 - "${cmdline}" <<'PY'
+import os
 import sys
 
 path = sys.argv[1]
+bak = f"{path}.bak"
 old = "  sys_err = system(cmd);"
 new = "  sys_err = -1; (void)cmd; /* iOS: system() unavailable */"
-text = open(path, encoding="utf-8").read()
+if os.path.exists(bak):
+    text = open(bak, encoding="utf-8").read()
+else:
+    text = open(path, encoding="utf-8").read()
+    open(bak, "w", encoding="utf-8").write(text)
 count = text.count(old)
-if count != 2:
+if count == 2:
+    open(path, "w", encoding="utf-8").write(text.replace(old, new))
+elif count == 0 and new in text:
+    pass  # already patched for this source tree
+else:
     sys.exit(f"Expected 2 system(cmd) sites in cmdline.c, found {count}")
-open(f"{path}.bak", "w", encoding="utf-8").write(text)
-open(path, "w", encoding="utf-8").write(text.replace(old, new))
 PY
 }
 
@@ -247,9 +255,11 @@ patch_subversion_configure_expat() {
   # Cross-compiling cannot reliably pass Subversion's Expat link/compile probe.
   # BSD sed breaks on PREFIX paths containing slashes; use Python instead.
   python3 - "${cfg}" "${PREFIX}" <<'PY'
+import os
 import sys
 
 path, prefix = sys.argv[1], sys.argv[2]
+bak = f"{path}.bak"
 old = '      as_fn_error $? "Expat not found" "$LINENO" 5'
 new = (
     f'      svn_lib_expat=yes; SVN_XML_INCLUDES="-I{prefix}/include"; '
@@ -257,10 +267,13 @@ new = (
     r'{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes (iOS cross)" >&5; '
     r'$as_echo "yes" >&6; }'
 )
-text = open(path, encoding="utf-8").read()
+if os.path.exists(bak):
+    text = open(bak, encoding="utf-8").read()
+else:
+    text = open(path, encoding="utf-8").read()
+    open(bak, "w", encoding="utf-8").write(text)
 if old not in text:
     sys.exit("Expat probe line not found in configure")
-open(f"{path}.bak", "w", encoding="utf-8").write(text)
 open(path, "w", encoding="utf-8").write(text.replace(old, new, 1))
 PY
 }
@@ -271,6 +284,7 @@ build_subversion() {
   make clean >/dev/null 2>&1 || true
   patch_subversion_configure_expat
   patch_subversion_cmdline_system
+  rm -f config.cache config.status
 
   ./configure \
     --host="${HOST}" \

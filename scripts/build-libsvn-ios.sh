@@ -32,14 +32,22 @@ require_macos() {
 }
 
 download() {
-  local url="$1"
-  local dest="$2"
+  local dest="$1"
+  shift
+  local url
   if [[ -f "${dest}" ]]; then
     log "Already downloaded: $(basename "${dest}")"
     return
   fi
-  log "Downloading $(basename "${dest}")..."
-  curl -fsSL "${url}" -o "${dest}"
+  for url in "$@"; do
+    log "Downloading $(basename "${dest}") from ${url}..."
+    if curl -fsSL "${url}" -o "${dest}"; then
+      return
+    fi
+    log "Failed: ${url}"
+    rm -f "${dest}"
+  done
+  die "Failed to download $(basename "${dest}")"
 }
 
 extract_tar() {
@@ -264,22 +272,27 @@ prepare_sources() {
   log "Preparing source trees..."
   cd "${DEPS_DIR}"
 
-  download "https://downloads.apache.org/subversion/subversion-${SVN_VERSION}.tar.bz2" \
-    "subversion-${SVN_VERSION}.tar.bz2"
+  download "subversion-${SVN_VERSION}.tar.bz2" \
+    "https://dlcdn.apache.org/subversion/subversion-${SVN_VERSION}.tar.bz2" \
+    "https://downloads.apache.org/subversion/subversion-${SVN_VERSION}.tar.bz2" \
+    "https://archive.apache.org/dist/subversion/subversion-${SVN_VERSION}.tar.bz2"
   extract_tar "subversion-${SVN_VERSION}.tar.bz2" "subversion-${SVN_VERSION}"
 
-  download "https://www.zlib.net/zlib-1.3.1.tar.gz" "zlib-1.3.1.tar.gz"
+  download "zlib-1.3.1.tar.gz" \
+    "https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz" \
+    "https://zlib.net/fossils/zlib-1.3.1.tar.gz"
   extract_tar "zlib-1.3.1.tar.gz" "zlib-1.3.1"
 
-  download "https://github.com/libexpat/libexpat/releases/download/R_2_6_2/expat-2.6.2.tar.bz2" \
-    "expat-2.6.2.tar.bz2"
+  download "expat-2.6.2.tar.bz2" \
+    "https://github.com/libexpat/libexpat/releases/download/R_2_6_2/expat-2.6.2.tar.bz2"
   if [[ ! -d "libexpat-R_2_6_2" ]]; then
     tar -xf expat-2.6.2.tar.bz2
     mv expat-2.6.2 libexpat-R_2_6_2
   fi
 
-  download "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz" \
-    "openssl-${OPENSSL_VERSION}.tar.gz"
+  download "openssl-${OPENSSL_VERSION}.tar.gz" \
+    "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz" \
+    "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
   extract_tar "openssl-${OPENSSL_VERSION}.tar.gz" "openssl-${OPENSSL_VERSION}"
 
   # Fetch APR, APR-util, serf, sqlite via Subversion's get-deps.sh (HTTP only, no svn CLI)

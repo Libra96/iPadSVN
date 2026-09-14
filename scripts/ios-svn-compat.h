@@ -5,15 +5,7 @@
 #include <TargetConditionals.h>
 
 #if TARGET_OS_IPHONE
-
-static inline int ipadsvn_system_stub(const char *command)
-{
-  (void)command;
-  return -1;
-}
-
-#define system(command) ipadsvn_system_stub(command)
-
+#define system(command) (-1)
 #endif
 
 #endif

@@ -359,6 +359,7 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/iPadSVN/Bridge",
+					"$(PROJECT_DIR)/../vendor/libsvn.xcframework/ios-arm64/Headers",
 				);
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -407,6 +408,7 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/iPadSVN/Bridge",
+					"$(PROJECT_DIR)/../vendor/libsvn.xcframework/ios-arm64/Headers",
 				);
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

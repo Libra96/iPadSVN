@@ -414,10 +414,19 @@ build_for_platform() {
 create_xcframework() {
   log "Creating libsvn.xcframework (device-only for iPad sideload)..."
   local device_lib="${INSTALL_ROOT}/iphoneos-arm64/lib/libsvn_merged.a"
-  local headers="${INSTALL_ROOT}/iphoneos-arm64/include"
+  local include_root="${INSTALL_ROOT}/iphoneos-arm64/include"
+  local headers="${OUTPUT_DIR}/xcframework-headers"
 
   [[ -f "${device_lib}" ]] || die "Missing device library: ${device_lib}"
-  [[ -d "${headers}" ]] || die "Missing headers: ${headers} (expected after make install)"
+  [[ -d "${include_root}" ]] || die "Missing headers: ${include_root}"
+
+  # Flatten svn/apr headers so #include "svn_client.h" / "apr_pools.h" work.
+  rm -rf "${headers}"
+  mkdir -p "${headers}"
+  cp "${include_root}/subversion-1/"*.h "${headers}/"
+  cp "${include_root}/apr-1/"*.h "${headers}/" 2>/dev/null || true
+  cp "${include_root}/apr-util-1/"*.h "${headers}/" 2>/dev/null || true
+  [[ -f "${headers}/svn_client.h" ]] || die "svn_client.h missing after flattening headers"
 
   rm -rf "${OUTPUT_DIR}/libsvn.xcframework"
   xcodebuild -create-xcframework \

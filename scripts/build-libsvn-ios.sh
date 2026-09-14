@@ -156,6 +156,7 @@ build_apr() {
     --prefix="${PREFIX}" \
     --enable-static \
     --disable-shared \
+    --disable-dso \
     --with-devrandom=/dev/urandom \
     CC="${CC}" \
     CFLAGS="${CFLAGS}" \
@@ -163,10 +164,13 @@ build_apr() {
     ac_cv_file__dev_zero=yes \
     ac_cv_func_setpgrp_void=yes \
     ac_cv_strerror_r_rc_int=yes \
+    ac_cv_sizeof_struct_iovec=8 \
+    apr_cv_mutex_recursive=yes \
     apr_cv_process_shared_works=no \
     apr_cv_mutex_robust_shared=no \
     apr_cv_tcp_nodelay_with_cork=yes
-  make -j"$(sysctl -n hw.ncpu)" install
+  # APR's libtool makefiles race under -jN during cross-compile (mmap.lo empty).
+  make -j1 install
 }
 
 build_apr_util() {
@@ -186,7 +190,7 @@ build_apr_util() {
     CFLAGS="${CFLAGS}" \
     LDFLAGS="${LDFLAGS} -L${PREFIX}/lib" \
     CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include/apr-1"
-  make -j"$(sysctl -n hw.ncpu)" install
+  make -j1 install
 }
 
 build_serf() {

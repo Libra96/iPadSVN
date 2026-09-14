@@ -67,12 +67,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: libsvn-xcframework
-          path: vendor
+          path: vendor/libsvn.xcframework
 
       - name: Build for iOS device
         run: |
           set -euo pipefail
-          test -d vendor/libsvn.xcframework
+          test -d vendor/libsvn.xcframework/ios-arm64
           xcodebuild build \
             -project iPadSVN/iPadSVN.xcodeproj \
             -scheme iPadSVN \

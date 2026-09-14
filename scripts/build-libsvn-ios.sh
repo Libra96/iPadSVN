@@ -162,6 +162,7 @@ build_apr() {
     LDFLAGS="${LDFLAGS}" \
     ac_cv_file__dev_zero=yes \
     ac_cv_func_setpgrp_void=yes \
+    ac_cv_strerror_r_rc_int=yes \
     apr_cv_process_shared_works=no \
     apr_cv_mutex_robust_shared=no \
     apr_cv_tcp_nodelay_with_cork=yes

@@ -313,11 +313,13 @@ build_subversion() {
     ac_cv_path_EGREP=/usr/bin/grep \
     ac_cv_path_AWK=/usr/bin/awk
 
+  # Build/install libsvn libraries only. A full `make` also builds bin/test/tools
+  # targets (svn, afl-x509, ...) that fail to link on iOS without expat in the
+  # final link line, but those binaries are not needed for the embedded client.
   make -j"$(sysctl -n hw.ncpu)" \
-    CFLAGS="${CFLAGS} -I${PREFIX}/include/apr-1 -I${PREFIX}/include/apr-util-1"
+    CFLAGS="${CFLAGS} -I${PREFIX}/include/apr-1 -I${PREFIX}/include/apr-util-1" \
+    fsmod-lib ramod-lib serf-lib lib
 
-  # Install libsvn static libraries + headers only. Full `make install` also
-  # builds svn/svnversion CLI binaries that can fail to link on iOS simulator.
   make install-lib install-include install-fsmod-lib install-ramod-lib install-serf-lib
 }
 

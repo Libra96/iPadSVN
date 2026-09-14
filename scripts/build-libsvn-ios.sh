@@ -243,7 +243,6 @@ build_subversion() {
     --with-apr-util="${PREFIX}" \
     --with-zlib="${PREFIX}" \
     --with-openssl="${PREFIX}" \
-    --with-sqlite="${DEPS_DIR}/subversion-${SVN_VERSION}/sqlite-amalgamation" \
     --with-libs="${PREFIX}/lib" \
     --with-editor=none \
     CC="${CC}" \
@@ -303,7 +302,7 @@ prepare_sources() {
 
   # Fetch APR, APR-util, serf, sqlite via Subversion's get-deps.sh (HTTP only, no svn CLI)
   cd "${DEPS_DIR}/subversion-${SVN_VERSION}"
-  if [[ ! -d apr ]]; then
+  if [[ ! -d apr || ! -f sqlite-amalgamation/sqlite3.c ]]; then
     log "Running get-deps.sh for APR/APR-util/serf/sqlite..."
     chmod +x ./get-deps.sh
     export APR_VERSION="1.7.5"

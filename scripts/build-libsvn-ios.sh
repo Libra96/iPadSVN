@@ -219,6 +219,7 @@ build_serf() {
 build_sqlite_amalgamation() {
   log "Building sqlite amalgamation..."
   cd "${DEPS_DIR}/subversion-${SVN_VERSION}/sqlite-amalgamation"
+  rm -f sqlite3.o
   ${CC} -c -o sqlite3.o sqlite3.c \
     -DSQLITE_THREADSAFE=1 -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_FTS4 \
     -DSQLITE_ENABLE_RTREE -DSQLITE_ENABLE_UNLOCK_NOTIFY \

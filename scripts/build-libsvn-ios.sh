@@ -198,17 +198,18 @@ build_serf() {
   cd "${DEPS_DIR}/serf"
   make clean >/dev/null 2>&1 || true
 
-  # serf uses scons; set environment for cross compile
+  # serf SCons expects APR/APU install prefixes (finds bin/apr-1-config inside).
   export SERF_PREFIX="${PREFIX}"
   scons \
     PREFIX="${PREFIX}" \
     CC="${CC}" \
     CFLAGS="${CFLAGS} -I${PREFIX}/include/apr-1 -I${PREFIX}/include/apr-util-1" \
     LINKFLAGS="${LDFLAGS}" \
-    APR="${PREFIX}/lib/libapr-1.a" \
-    APRUTIL="${PREFIX}/lib/libaprutil-1.a" \
+    APR="${PREFIX}" \
+    APU="${PREFIX}" \
     OPENSSL="${PREFIX}" \
-    enable-shared=no \
+    ZLIB="${PREFIX}" \
+    APR_STATIC=yes \
     install
 }
 
@@ -308,7 +309,7 @@ prepare_sources() {
     export APR_VERSION="1.7.5"
     export APU_VERSION="1.6.3"
     export SERF_VERSION="1.3.10"
-    ./get-deps.sh apr serf sqlite-amalgamation
+    ./get-deps.sh apr serf sqlite
   fi
 
   ln -sfn "${DEPS_DIR}/subversion-${SVN_VERSION}/apr" "${DEPS_DIR}/apr"

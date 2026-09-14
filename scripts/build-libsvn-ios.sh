@@ -412,19 +412,16 @@ build_for_platform() {
 }
 
 create_xcframework() {
-  log "Creating libsvn.xcframework..."
+  log "Creating libsvn.xcframework (device-only for iPad sideload)..."
   local device_lib="${INSTALL_ROOT}/iphoneos-arm64/lib/libsvn_merged.a"
-  local sim_lib="${INSTALL_ROOT}/iphonesimulator-arm64/lib/libsvn_merged.a"
   local headers="${INSTALL_ROOT}/iphoneos-arm64/include"
 
   [[ -f "${device_lib}" ]] || die "Missing device library: ${device_lib}"
-  [[ -f "${sim_lib}" ]] || die "Missing simulator library: ${sim_lib}"
   [[ -d "${headers}" ]] || die "Missing headers: ${headers} (expected after make install)"
 
   rm -rf "${OUTPUT_DIR}/libsvn.xcframework"
   xcodebuild -create-xcframework \
     -library "${device_lib}" -headers "${headers}" \
-    -library "${sim_lib}" -headers "${headers}" \
     -output "${OUTPUT_DIR}/libsvn.xcframework"
 
   log "XCFramework created at ${OUTPUT_DIR}/libsvn.xcframework"
@@ -454,8 +451,9 @@ main() {
   log "Root: ${ROOT}"
 
   prepare_sources
+  # Physical iPad sideload only needs iphoneos; skip simulator to avoid mixed
+  # static object contamination in merged archives during cross-builds.
   build_for_platform "iphoneos" "arm64"
-  build_for_platform "iphonesimulator" "arm64"
   create_xcframework
   write_summary
 

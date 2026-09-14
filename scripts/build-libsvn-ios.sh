@@ -283,6 +283,7 @@ build_subversion() {
     --without-berkeley-db \
     --without-sasl \
     --disable-keychain \
+    --with-lz4=internal \
     --with-utf8proc=internal \
     --with-serf="${PREFIX}" \
     --with-apr="${PREFIX}" \

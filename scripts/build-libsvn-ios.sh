@@ -228,6 +228,17 @@ build_subversion() {
   log "Building Subversion (libsvn)..."
   cd "${DEPS_DIR}/subversion-${SVN_VERSION}"
   make clean >/dev/null 2>&1 || true
+
+  # Subversion's Expat probe uses CPPFLAGS (not CFLAGS). Inject paths via CONFIG_SITE
+  # so the cross-compile compile check finds our static expat headers.
+  local config_site="${DEPS_DIR}/subversion-${SVN_VERSION}/subversion-ios.site"
+  cat > "${config_site}" <<EOF
+CPPFLAGS="-I${PREFIX}/include \${CPPFLAGS}"
+LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
+LIBS="${PREFIX}/lib/libexpat.a"
+EOF
+  export CONFIG_SITE="${config_site}"
+
   ./configure \
     --host="${HOST}" \
     --prefix="${PREFIX}" \
@@ -242,17 +253,19 @@ build_subversion() {
     --with-serf="${PREFIX}" \
     --with-apr="${PREFIX}" \
     --with-apr-util="${PREFIX}" \
-    --with-expat="${PREFIX}/include:${PREFIX}/lib:expat" \
     --with-zlib="${PREFIX}" \
     --with-openssl="${PREFIX}" \
     --with-libs="${PREFIX}/lib" \
     --with-editor=none \
     CC="${CC}" \
     CFLAGS="${CFLAGS} -include ${ROOT}/scripts/ios-svn-compat.h -I${PREFIX}/include/apr-1 -I${PREFIX}/include/apr-util-1" \
+    CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include" \
     LDFLAGS="${LDFLAGS} -L${PREFIX}/lib" \
+    LIBS="${PREFIX}/lib/libexpat.a" \
     ac_cv_path_EGREP=/usr/bin/grep \
     ac_cv_path_AWK=/usr/bin/awk
 
+  unset CONFIG_SITE
   make -j"$(sysctl -n hw.ncpu)" install
 }
 

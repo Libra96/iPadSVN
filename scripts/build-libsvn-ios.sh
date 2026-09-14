@@ -238,6 +238,7 @@ build_subversion() {
     --without-javahl \
     --without-berkeley-db \
     --without-sasl \
+    --with-utf8proc=internal \
     --with-serf="${PREFIX}" \
     --with-apr="${PREFIX}" \
     --with-apr-util="${PREFIX}" \

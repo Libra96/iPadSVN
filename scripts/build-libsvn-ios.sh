@@ -227,10 +227,24 @@ build_sqlite_amalgamation() {
 patch_subversion_configure_expat() {
   local cfg="${DEPS_DIR}/subversion-${SVN_VERSION}/configure"
   # Cross-compiling cannot reliably pass Subversion's Expat link/compile probe.
-  # We already built static expat; force the probe to succeed with our paths.
-  sed -i.bak \
-    's/as_fn_error \$? "Expat not found" "\$LINENO" 5/svn_lib_expat=yes; SVN_XML_INCLUDES="-I'"${PREFIX}"'\/include"; SVN_XML_LIBS="-L'"${PREFIX}"'\/lib -lexpat"; { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes (iOS cross)" >\&5; $as_echo "yes" >\&6; }/' \
-    "${cfg}"
+  # BSD sed breaks on PREFIX paths containing slashes; use Python instead.
+  python3 - "${cfg}" "${PREFIX}" <<'PY'
+import sys
+
+path, prefix = sys.argv[1], sys.argv[2]
+old = '      as_fn_error $? "Expat not found" "$LINENO" 5'
+new = (
+    f'      svn_lib_expat=yes; SVN_XML_INCLUDES="-I{prefix}/include"; '
+    f'SVN_XML_LIBS="-L{prefix}/lib -lexpat"; '
+    r'{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes (iOS cross)" >&5; '
+    r'$as_echo "yes" >&6; }'
+)
+text = open(path, encoding="utf-8").read()
+if old not in text:
+    sys.exit("Expat probe line not found in configure")
+open(f"{path}.bak", "w", encoding="utf-8").write(text)
+open(path, "w", encoding="utf-8").write(text.replace(old, new, 1))
+PY
 }
 
 build_subversion() {

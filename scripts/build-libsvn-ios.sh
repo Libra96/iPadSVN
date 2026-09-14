@@ -224,6 +224,24 @@ build_sqlite_amalgamation() {
   cp sqlite3.h sqlite3ext.h "${PREFIX}/include/"
 }
 
+patch_subversion_cmdline_system() {
+  local cmdline="${DEPS_DIR}/subversion-${SVN_VERSION}/subversion/libsvn_subr/cmdline.c"
+  # iOS forbids system(); editor support is disabled via --with-editor=none anyway.
+  python3 - "${cmdline}" <<'PY'
+import sys
+
+path = sys.argv[1]
+old = "  sys_err = system(cmd);"
+new = "  sys_err = -1; (void)cmd; /* iOS: system() unavailable */"
+text = open(path, encoding="utf-8").read()
+count = text.count(old)
+if count != 2:
+    sys.exit(f"Expected 2 system(cmd) sites in cmdline.c, found {count}")
+open(f"{path}.bak", "w", encoding="utf-8").write(text)
+open(path, "w", encoding="utf-8").write(text.replace(old, new))
+PY
+}
+
 patch_subversion_configure_expat() {
   local cfg="${DEPS_DIR}/subversion-${SVN_VERSION}/configure"
   # Cross-compiling cannot reliably pass Subversion's Expat link/compile probe.
@@ -252,6 +270,7 @@ build_subversion() {
   cd "${DEPS_DIR}/subversion-${SVN_VERSION}"
   make clean >/dev/null 2>&1 || true
   patch_subversion_configure_expat
+  patch_subversion_cmdline_system
 
   ./configure \
     --host="${HOST}" \
@@ -279,7 +298,7 @@ build_subversion() {
     ac_cv_path_AWK=/usr/bin/awk
 
   make -j"$(sysctl -n hw.ncpu)" \
-    CFLAGS="${CFLAGS} -include ${ROOT}/scripts/ios-svn-compat.h -I${PREFIX}/include/apr-1 -I${PREFIX}/include/apr-util-1" \
+    CFLAGS="${CFLAGS} -I${PREFIX}/include/apr-1 -I${PREFIX}/include/apr-util-1" \
     install
 }
 

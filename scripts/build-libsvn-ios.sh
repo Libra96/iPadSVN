@@ -91,7 +91,7 @@ setup_ios_env() {
   export RANLIB="xcrun -sdk ${SDK} ranlib"
   export STRIP="xcrun -sdk ${SDK} strip"
   export LD="xcrun -sdk ${SDK} ld"
-  export CFLAGS="-isysroot ${SYSROOT} -arch ${arch} ${MIN_FLAG} -O2"
+  export CFLAGS="-isysroot ${SYSROOT} -arch ${arch} ${MIN_FLAG} -O2 -include ${ROOT}/scripts/ios-svn-compat.h"
   export CXXFLAGS="${CFLAGS}"
   export LDFLAGS="-isysroot ${SYSROOT} -arch ${arch} ${MIN_FLAG} -L${PREFIX}/lib"
   export CPPFLAGS="-isysroot ${SYSROOT} -I${PREFIX}/include"

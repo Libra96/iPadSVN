@@ -1,18 +1,8 @@
 name: Verify libsvn iOS Build
 
+# Manual-only: libsvn build + link verify runs inside Build iPadSVN App on PR/push.
 on:
   workflow_dispatch:
-  push:
-    branches: [main, master]
-    paths:
-      - 'scripts/**'
-      - 'verify/**'
-      - '.github/workflows/verify-libsvn-ios.yml'
-  pull_request:
-    paths:
-      - 'scripts/**'
-      - 'verify/**'
-      - '.github/workflows/verify-libsvn-ios.yml'
 
 jobs:
   build-libsvn-ios:

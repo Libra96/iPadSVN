@@ -91,7 +91,7 @@ setup_ios_env() {
   export RANLIB="xcrun -sdk ${SDK} ranlib"
   export STRIP="xcrun -sdk ${SDK} strip"
   export LD="xcrun -sdk ${SDK} ld"
-  export CFLAGS="-isysroot ${SYSROOT} -arch ${arch} ${MIN_FLAG} -O2 -include ${ROOT}/scripts/ios-svn-compat.h"
+  export CFLAGS="-isysroot ${SYSROOT} -arch ${arch} ${MIN_FLAG} -O2"
   export CXXFLAGS="${CFLAGS}"
   export LDFLAGS="-isysroot ${SYSROOT} -arch ${arch} ${MIN_FLAG} -L${PREFIX}/lib"
   export CPPFLAGS="-isysroot ${SYSROOT} -I${PREFIX}/include"
@@ -247,7 +247,7 @@ build_subversion() {
     --with-libs="${PREFIX}/lib" \
     --with-editor=none \
     CC="${CC}" \
-    CFLAGS="${CFLAGS} -I${PREFIX}/include/apr-1 -I${PREFIX}/include/apr-util-1" \
+    CFLAGS="${CFLAGS} -include ${ROOT}/scripts/ios-svn-compat.h -I${PREFIX}/include/apr-1 -I${PREFIX}/include/apr-util-1" \
     LDFLAGS="${LDFLAGS} -L${PREFIX}/lib" \
     ac_cv_path_EGREP=/usr/bin/grep \
     ac_cv_path_AWK=/usr/bin/awk

@@ -9,7 +9,7 @@ struct RepoGalleryView: View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(store.repositories) { repo in
-                    RepoCardView(repo: repo, changeCount: changeCount(for: repo)) {
+                    RepoCardView(repo: repo) {
                         Task { await store.enterRepository(repo) }
                     }
                 }
@@ -45,30 +45,15 @@ struct RepoGalleryView: View {
         }
     }
 
-    private func changeCount(for repo: SVNRepository) -> Int {
-        // 演示数据：进入仓库后会刷新真实变更数
-        switch repo.name {
-        case "mobile-app": return 5
-        case "backend-api": return 1
-        case "design-system": return 1
-        default: return 0
-        }
-    }
 }
 
 private struct RepoCardView: View {
     let repo: SVNRepository
-    let changeCount: Int
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 0) {
-                if changeCount > 0 {
-                    LinearGradient(colors: [AppTheme.accent, Color.cyan], startPoint: .leading, endPoint: .trailing)
-                        .frame(height: 3)
-                }
-
                 VStack(alignment: .leading, spacing: 12) {
                     Image(systemName: "book.closed")
                         .font(.system(size: 20, weight: .semibold))
@@ -88,7 +73,7 @@ private struct RepoCardView: View {
 
                     HStack(spacing: 8) {
                         chip("r\(repo.revision)")
-                        chip(changeCount > 0 ? "\(changeCount) 处变更" : "无变更", highlighted: changeCount > 0)
+                        chip("libsvn")
                     }
 
                     Text("上次同步 · \(repo.lastSyncDescription)")

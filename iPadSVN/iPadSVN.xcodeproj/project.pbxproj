@@ -11,7 +11,11 @@
 		AA1000010000000000000002 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000010000000000000002 /* AppStore.swift */; };
 		AA1000010000000000000003 /* SVNModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000010000000000000003 /* SVNModels.swift */; };
 		AA1000010000000000000004 /* SVNClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000010000000000000004 /* SVNClient.swift */; };
-		AA1000010000000000000005 /* MockSVNClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000010000000000000005 /* MockSVNClient.swift */; };
+		AA1000010000000000000013 /* SVNBridge.c in Sources */ = {isa = PBXBuildFile; fileRef = AA2000010000000000000013 /* SVNBridge.c */; };
+		AA1000010000000000000016 /* SVNBridgeAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000010000000000000016 /* SVNBridgeAPI.swift */; };
+		AA1000010000000000000017 /* RepositoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000010000000000000017 /* RepositoryStore.swift */; };
+		AA1000010000000000000018 /* CredentialsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000010000000000000018 /* CredentialsStore.swift */; };
+		AA1000010000000000000014 /* libsvn.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA2000010000000000000019 /* libsvn.xcframework */; };
 		AA1000010000000000000006 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000010000000000000006 /* AppTheme.swift */; };
 		AA1000010000000000000007 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000010000000000000007 /* RootView.swift */; };
 		AA1000010000000000000008 /* RepoGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000010000000000000008 /* RepoGalleryView.swift */; };
@@ -32,7 +36,13 @@
 		AA2000010000000000000002 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
 		AA2000010000000000000003 /* SVNModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVNModels.swift; sourceTree = "<group>"; };
 		AA2000010000000000000004 /* SVNClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVNClient.swift; sourceTree = "<group>"; };
-		AA2000010000000000000005 /* MockSVNClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSVNClient.swift; sourceTree = "<group>"; };
+		AA2000010000000000000013 /* SVNBridge.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = SVNBridge.c; sourceTree = "<group>"; };
+		AA2000010000000000000014 /* SVNBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SVNBridge.h; sourceTree = "<group>"; };
+		AA2000010000000000000015 /* iPadSVN-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "iPadSVN-Bridging-Header.h"; sourceTree = "<group>"; };
+		AA2000010000000000000016 /* SVNBridgeAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVNBridgeAPI.swift; sourceTree = "<group>"; };
+		AA2000010000000000000017 /* RepositoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryStore.swift; sourceTree = "<group>"; };
+		AA2000010000000000000018 /* CredentialsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialsStore.swift; sourceTree = "<group>"; };
+		AA2000010000000000000019 /* libsvn.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libsvn.xcframework; path = ../vendor/libsvn.xcframework; sourceTree = "<group>"; };
 		AA2000010000000000000006 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		AA2000010000000000000007 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		AA2000010000000000000008 /* RepoGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoGalleryView.swift; sourceTree = "<group>"; };
@@ -54,6 +64,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA1000010000000000000014 /* libsvn.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -64,14 +75,24 @@
 			isa = PBXGroup;
 			children = (
 				AA5000010000000000000002 /* iPadSVN */,
+				AA500001000000000000000D /* Vendor */,
 				AA5000010000000000000003 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		AA500001000000000000000D /* Vendor */ = {
+			isa = PBXGroup;
+			children = (
+				AA2000010000000000000019 /* libsvn.xcframework */,
+			);
+			name = Vendor;
 			sourceTree = "<group>";
 		};
 		AA5000010000000000000002 /* iPadSVN */ = {
 			isa = PBXGroup;
 			children = (
 				AA2000010000000000000001 /* iPadSVNApp.swift */,
+				AA500001000000000000000C /* Bridge */,
 				AA5000010000000000000004 /* App */,
 				AA5000010000000000000005 /* Models */,
 				AA5000010000000000000006 /* Services */,
@@ -106,12 +127,24 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
+		AA500001000000000000000C /* Bridge */ = {
+			isa = PBXGroup;
+			children = (
+				AA2000010000000000000013 /* SVNBridge.c */,
+				AA2000010000000000000014 /* SVNBridge.h */,
+				AA2000010000000000000015 /* iPadSVN-Bridging-Header.h */,
+			);
+			path = Bridge;
+			sourceTree = "<group>";
+		};
 		AA5000010000000000000006 /* Services */ = {
 			isa = PBXGroup;
 			children = (
 				AA2000010000000000000004 /* SVNClient.swift */,
-				AA2000010000000000000005 /* MockSVNClient.swift */,
 				AA2000010000000000000012 /* LibSvnClient.swift */,
+				AA2000010000000000000016 /* SVNBridgeAPI.swift */,
+				AA2000010000000000000017 /* RepositoryStore.swift */,
+				AA2000010000000000000018 /* CredentialsStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -239,7 +272,10 @@
 				AA1000010000000000000002 /* AppStore.swift in Sources */,
 				AA1000010000000000000003 /* SVNModels.swift in Sources */,
 				AA1000010000000000000004 /* SVNClient.swift in Sources */,
-				AA1000010000000000000005 /* MockSVNClient.swift in Sources */,
+				AA1000010000000000000013 /* SVNBridge.c in Sources */,
+				AA1000010000000000000016 /* SVNBridgeAPI.swift in Sources */,
+				AA1000010000000000000017 /* RepositoryStore.swift in Sources */,
+				AA1000010000000000000018 /* CredentialsStore.swift in Sources */,
 				AA1000010000000000000006 /* AppTheme.swift in Sources */,
 				AA1000010000000000000007 /* RootView.swift in Sources */,
 				AA1000010000000000000008 /* RepoGalleryView.swift in Sources */,
@@ -316,16 +352,34 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../vendor",
+				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/iPadSVN/Bridge",
+				);
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-liconv",
+					"-lz",
+					"-framework",
+					Security,
+					"-framework",
+					SystemConfiguration,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.local.ipadsvn;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "iPadSVN/Bridge/iPadSVN-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 2;
 			};
@@ -346,16 +400,34 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../vendor",
+				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/iPadSVN/Bridge",
+				);
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-liconv",
+					"-lz",
+					"-framework",
+					Security,
+					"-framework",
+					SystemConfiguration,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.local.ipadsvn;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "iPadSVN/Bridge/iPadSVN-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 2;
 			};

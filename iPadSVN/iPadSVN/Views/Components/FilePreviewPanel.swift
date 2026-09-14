@@ -3,6 +3,7 @@ import SwiftUI
 struct FilePreviewPanel: View {
     @EnvironmentObject private var store: AppStore
     let node: SVNFileNode
+    @State private var diffLines: [DiffLine] = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -57,8 +58,8 @@ struct FilePreviewPanel: View {
             .overlay(alignment: .bottom) { Rectangle().fill(AppTheme.line).frame(height: 1) }
 
             ScrollView {
-                if let lines = node.diffLines, !lines.isEmpty {
-                    DiffLinesView(lines: lines)
+                if !displayDiff.isEmpty {
+                    DiffLinesView(lines: displayDiff)
                 } else {
                     Text("（无文本预览）")
                         .font(.system(size: 12, design: .monospaced))
@@ -69,6 +70,13 @@ struct FilePreviewPanel: View {
             }
             .frame(maxHeight: 180)
             .background(AppTheme.surfaceSecondary)
+            .task(id: node.path) {
+                if node.status != nil {
+                    diffLines = await store.loadDiff(for: node.path)
+                } else {
+                    diffLines = []
+                }
+            }
 
             HStack(spacing: 8) {
                 if node.status != nil {
@@ -97,6 +105,11 @@ struct FilePreviewPanel: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: .black.opacity(0.12), radius: 20, y: -4)
         .padding(.horizontal, 0)
+    }
+
+    private var displayDiff: [DiffLine] {
+        if !diffLines.isEmpty { return diffLines }
+        return node.diffLines ?? []
     }
 
     private func metaItem(_ text: String) -> some View {

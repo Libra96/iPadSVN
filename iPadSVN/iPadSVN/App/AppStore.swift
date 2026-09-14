@@ -38,8 +38,11 @@ final class AppStore: ObservableObject {
         return client.node(at: path.split(separator: "/").map(String.init), in: tree)
     }
 
-    init(client: SVNClient = MockSVNClient()) {
+    private let libClient: LibSvnClient
+
+    init(client: SVNClient = LibSvnClient()) {
         self.client = client
+        self.libClient = client as? LibSvnClient ?? LibSvnClient()
     }
 
     func bootstrap() async {
@@ -149,9 +152,14 @@ final class AppStore: ObservableObject {
         showToast("已切换到 \(repo.name)")
     }
 
-    func checkoutRepository(url: String, name: String) async {
+    func checkoutRepository(url: String, name: String, username: String, password: String) async {
         do {
-            let repo = try await client.checkout(url: url, name: name, username: nil, password: nil)
+            let repo = try await client.checkout(
+                url: url,
+                name: name,
+                username: username,
+                password: password
+            )
             await reloadRepositories()
             showCheckoutSheet = false
             await enterRepository(repo)
@@ -199,5 +207,15 @@ final class AppStore: ObservableObject {
 
     func clientFolderHasChanges(_ node: SVNFileNode) -> Bool {
         client.folderHasChanges(node)
+    }
+
+    func loadDiff(for path: String) async -> [DiffLine] {
+        guard let id = selectedRepositoryID else { return [] }
+        do {
+            return try await libClient.diffLines(repositoryID: id, relativePath: path)
+        } catch {
+            showToast(error.localizedDescription)
+            return []
+        }
     }
 }

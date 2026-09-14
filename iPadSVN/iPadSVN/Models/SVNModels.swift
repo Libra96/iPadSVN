@@ -150,6 +150,8 @@ enum SVNError: LocalizedError {
     case emptyCommitMessage
     case noChangesSelected
     case notImplemented
+    case operationFailed(String)
+    case invalidURL
 
     var errorDescription: String? {
         switch self {
@@ -157,7 +159,9 @@ enum SVNError: LocalizedError {
         case .pathNotFound: return "找不到路径"
         case .emptyCommitMessage: return "请填写提交说明"
         case .noChangesSelected: return "请至少选择一个文件"
-        case .notImplemented: return "功能尚未接入 libsvn"
+        case .notImplemented: return "libsvn 未链接，请先完成云编译"
+        case .operationFailed(let msg): return msg
+        case .invalidURL: return "SVN 地址无效"
         }
     }
 }

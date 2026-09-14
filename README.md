@@ -1,47 +1,32 @@
 # iPadSVN
 
-iPad 原生 SVN 客户端 — 无后端，计划内嵌 libsvn。
+iPad 原生 SVN 客户端 — **内嵌 libsvn**，无后端。
 
-## 当前进度
+## 功能
 
-| 模块 | 状态 |
-|------|------|
-| SwiftUI App v0.1 | ✅ Timeline 浅色 UI + Mock SVN |
-| libsvn iOS 交叉编译脚本 | ✅ 待 CI 验证 |
-| libsvn 接入 | ⏳ 占位 `LibSvnClient` |
+- Checkout / Update / Commit / Revert
+- 多仓库工作副本
+- 文件浏览 + 变更 Diff + 提交历史
+- 账号密码存 Keychain
 
-## 快速开始（无 Mac）
+## 无 Mac 安装
 
-👉 **完整步骤见 [docs/无Mac安装指南.md](docs/无Mac安装指南.md)**
+1. GitHub **Actions** → **Build iPadSVN App**（先编 libsvn，再编 App）
+2. 下载 **iPadSVN-ipa**
+3. Windows **Sideloadly** 装 iPad
 
-简要流程：
+详见 [docs/无Mac安装指南.md](docs/无Mac安装指南.md)
 
-1. 代码推到 GitHub
-2. **Actions** → **Build iPadSVN App** → 下载 IPA
-3. Windows 用 **Sideloadly** 装到 iPad
+## 使用
 
-### 有 Mac 时
+1. 打开 App → **Checkout 新仓库**
+2. 填 SVN URL、用户名、密码
+3. 进入仓库浏览文件、提交变更
 
-```bash
-open iPadSVN/iPadSVN.xcodeproj
-```
-
-### 验证 libsvn 能否编进 iOS
-
-GitHub → **Actions** → **Verify libsvn iOS Build**
-
-详见 [docs/云编译步骤.md](docs/云编译步骤.md)
-
-## 目录
+## 结构
 
 ```
-iPadSVN/              SwiftUI 工程
-design/               UI 原型 HTML
-scripts/              libsvn 编译脚本
-docs/                 文档
-.github/workflows/    CI
+iPadSVN/           SwiftUI + libsvn 桥接
+scripts/           libsvn iOS 交叉编译
+vendor/            CI 产出 libsvn.xcframework
 ```
-
-## UI 原型
-
-交互参考：`design/timeline-light-demo.html`

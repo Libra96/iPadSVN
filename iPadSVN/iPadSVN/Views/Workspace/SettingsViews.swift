@@ -13,7 +13,7 @@ struct GlobalSettingsView: View {
                 LabeledContent("清除全部缓存", value: "›")
             }
             Section {
-                Text("当前为演示版，SVN 操作由 Mock 数据驱动。libsvn 接入后将直连服务器。")
+                Text("内嵌 libsvn，Checkout 后直连 SVN 服务器。账号密码保存在本机 Keychain。")
                     .font(.footnote)
                     .foregroundStyle(AppTheme.inkSecondary)
             }
@@ -51,8 +51,10 @@ struct RepositorySettingsView: View {
 struct CheckoutSheetView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
-    @State private var url = "https://svn.company.com/project/trunk"
-    @State private var name = "new-project"
+    @State private var url = "https://svn.example.com/repo/trunk"
+    @State private var name = "my-project"
+    @State private var username = ""
+    @State private var password = ""
 
     var body: some View {
         NavigationStack {
@@ -65,6 +67,12 @@ struct CheckoutSheetView: View {
                 Section("本地名称") {
                     TextField("工作副本名称", text: $name)
                 }
+                Section("SVN 账号") {
+                    TextField("用户名", text: $username)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    SecureField("密码", text: $password)
+                }
             }
             .navigationTitle("Checkout")
             .navigationBarTitleDisplayMode(.inline)
@@ -74,13 +82,20 @@ struct CheckoutSheetView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("开始") {
-                        Task { await store.checkoutRepository(url: url, name: name) }
+                        Task {
+                            await store.checkoutRepository(
+                                url: url,
+                                name: name,
+                                username: username,
+                                password: password
+                            )
+                        }
                     }
                     .fontWeight(.semibold)
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
     }
 }
 

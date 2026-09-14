@@ -321,7 +321,7 @@ create_xcframework() {
   log "Creating libsvn.xcframework..."
   local device_lib="${INSTALL_ROOT}/iphoneos-arm64/lib/libsvn_merged.a"
   local sim_lib="${INSTALL_ROOT}/iphonesimulator-arm64/lib/libsvn_merged.a"
-  local headers="${INSTALL_ROOT}/iphoneos-arm64/include/subversion"
+  local headers="${INSTALL_ROOT}/iphoneos-arm64/include"
 
   [[ -f "${device_lib}" ]] || die "Missing device library: ${device_lib}"
   [[ -f "${sim_lib}" ]] || die "Missing simulator library: ${sim_lib}"

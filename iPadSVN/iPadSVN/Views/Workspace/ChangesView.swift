@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ChangesView: View {
     @EnvironmentObject private var store: AppStore
+    @State private var diffCache: [String: [DiffLine]] = [:]
 
     var body: some View {
         ScrollView {
@@ -14,10 +15,18 @@ struct ChangesView: View {
                         ChangeEventView(
                             change: change,
                             isExpanded: store.expandedChangePath == change.id,
-                            isLast: index == store.changes.count - 1
+                            isLast: index == store.changes.count - 1,
+                            diffLines: store.expandedChangePath == change.id ? diffCache[change.id] : nil
                         ) {
                             withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-                                store.expandedChangePath = store.expandedChangePath == change.id ? nil : change.id
+                                let opening = store.expandedChangePath != change.id
+                                store.expandedChangePath = opening ? change.id : nil
+                                if opening {
+                                    Task {
+                                        let lines = await store.loadDiff(for: change.id)
+                                        diffCache[change.id] = lines
+                                    }
+                                }
                             }
                         }
                     }
@@ -34,6 +43,7 @@ private struct ChangeEventView: View {
     let change: SVNChange
     let isExpanded: Bool
     let isLast: Bool
+    let diffLines: [DiffLine]?
     let onTap: () -> Void
 
     var body: some View {
@@ -80,7 +90,7 @@ private struct ChangeEventView: View {
                 }
                 .buttonStyle(.plain)
 
-                if isExpanded, let lines = change.node.diffLines {
+                if isExpanded, let lines = diffLines, !lines.isEmpty {
                     DiffLinesView(lines: lines)
                         .background(AppTheme.surfaceSecondary)
                         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusSmall, style: .continuous))

@@ -14,10 +14,14 @@ if (-not $gh) {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 }
 
-gh auth status 2>$null
-if ($LASTEXITCODE -ne 0) {
+$loggedIn = $false
+cmd /c "gh auth status >nul 2>nul"
+if ($LASTEXITCODE -eq 0) { $loggedIn = $true }
+
+if (-not $loggedIn) {
     Write-Host "请在浏览器中完成 GitHub 登录授权..." -ForegroundColor Yellow
     gh auth login -h github.com -p https -w -s repo
+    if ($LASTEXITCODE -ne 0) { throw "GitHub 登录失败，请重试" }
 }
 
 $user = (gh api user -q .login)

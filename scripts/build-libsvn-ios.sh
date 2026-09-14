@@ -196,7 +196,10 @@ build_apr_util() {
 build_serf() {
   log "Building serf..."
   cd "${DEPS_DIR}/serf"
-  make clean >/dev/null 2>&1 || true
+  # Serf uses SCons; leftover .o/.os from the other iOS platform ends up in
+  # libserf-1.a and breaks xcodebuild -create-xcframework (mixed platforms).
+  scons -c >/dev/null 2>&1 || true
+  find . \( -name '*.o' -o -name '*.os' -o -name 'libserf-1*.a' -o -name 'libserf-1*.dylib' \) -delete 2>/dev/null || true
 
   # serf SCons expects APR/APU install prefixes (finds bin/apr-1-config inside).
   export SERF_PREFIX="${PREFIX}"
@@ -326,6 +329,7 @@ build_subversion() {
 merge_static_libs() {
   log "Merging static libraries into libsvn_merged.a..."
   cd "${PREFIX}/lib"
+  rm -f ./*.dylib
   local libs=()
   shopt -s nullglob
   for lib in libsvn_*.a libapr*.a libserf-*.a libexpat.a libz.a libsqlite3.a libssl.a libcrypto.a; do

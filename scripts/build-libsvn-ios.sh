@@ -242,6 +242,7 @@ build_subversion() {
     --with-serf="${PREFIX}" \
     --with-apr="${PREFIX}" \
     --with-apr-util="${PREFIX}" \
+    --with-expat="${PREFIX}/include:${PREFIX}/lib:expat" \
     --with-zlib="${PREFIX}" \
     --with-openssl="${PREFIX}" \
     --with-libs="${PREFIX}/lib" \

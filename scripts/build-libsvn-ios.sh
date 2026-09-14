@@ -317,6 +317,8 @@ build_subversion() {
     ac_cv_path_EGREP=/usr/bin/grep \
     ac_cv_path_AWK=/usr/bin/awk
 
+  make fast-clean >/dev/null 2>&1 || true
+
   # Build/install libsvn libraries only. A full `make` also builds bin/test/tools
   # targets (svn, afl-x509, ...) that fail to link on iOS without expat in the
   # final link line, but those binaries are not needed for the embedded client.

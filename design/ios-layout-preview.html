@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iPadSVN — A/C 布局对比 & iOS 原生风格</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif;
+      background: #1c1c1e;
+      color: #fff;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .header { max-width: 1400px; margin: 0 auto 20px; }
+    .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .header p { font-size: 14px; color: #98989d; line-height: 1.6; }
+
+    /* ===== A vs C 并排对比 ===== */
+    .compare-section { max-width: 1400px; margin: 0 auto 40px; }
+    .compare-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .compare-title span { color: #98989d; font-weight: 400; font-size: 13px; }
+
+    .compare-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 1100px) { .compare-row { grid-template-columns: 1fr; } }
+
+    .compare-card { display: flex; flex-direction: column; gap: 10px; }
+    .compare-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
+    }
+    .compare-label h2 { font-size: 15px; font-weight: 600; }
+    .compare-label .tag {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: #2c2c2e;
+      color: #98989d;
+    }
+
+    .ipad {
+      background: #000;
+      border-radius: 20px;
+      padding: 10px;
+      aspect-ratio: 4/3;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      position: relative;
+    }
+    .ipad-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* 布局标注层 */
+    .layout-anno {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .anno-zone {
+      position: absolute;
+      border: 2px dashed;
+      border-radius: 4px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+    .anno-zone span {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin: 4px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    /* ===== STYLE A 布局 ===== */
+    .layout-a {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: #f5f5f7;
+      color: #1d1d1f;
+    }
+    .layout-a .status-bar {
+      height: 24px;
+      background: #f5f5f7;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #1d1d1f;
+    }
+    .layout-a .nav-bar {
+      height: 44px;
+      background: #f5f5f7;
+      border-bottom: .5px solid #d1d1d6;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 8px;
+    }
+    .layout-a .nav-bar .title { flex: 1; font-size: 17px; font-weight: 600; text-align: center; }
+    .layout-a .nav-bar .btn-blue {
+      font-size: 17px;
+      color: #007aff;
+      background: none;
+      border: none;
+      font-weight: 400;
+    }
+    .layout-a .nav-bar .btn-blue.bold { font-weight: 600; }
+    .layout-a .body { flex: 1; display: flex; overflow: hidden; }
+    .layout-a .col-sidebar {
+      width: 28%;
+      background: #ebebef;
+      border-right: .5px solid #d1d1d6;
+      padding: 8px 0;
+    }
+    .layout-a .col-files { flex: 1; background: #fff; }
+    .layout-a .col-diff {
+      width: 32%;
+      background: #f5f5f7;
+      border-left: .5px solid #d1d1d6;
+    }
+    .layout-a .sec-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6e6e73;
+      text-transform: uppercase;
+      padding: 8px 16px 4px;
+      letter-spacing: .04em;
+    }
+    .layout-a .list-item {
+      padding: 8px 16px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .layout-a .list-item.active { background: #fff; }
+    .layout-a .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .layout-a .dot.m { background: #ff9500; }
+    .layout-a .dot.a { background: #34c759; }
+    .layout-a .path {
+      padding: 8px 16px;
+      font-size: 13px;
+      color: #6e6e73;
+      border-bottom: .5px solid #e5e5ea;
+    }
+    .layout-a .file-row {
+      padding: 10px 16px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: .5px solid #f2f2f7;
+    }
+    .layout-a .file-row.sel { background: #e8f2fd; }
+    .layout-a .diff-head {
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-bottom: .5px solid #d1d1d6;
+    }
+    .layout-a .diff-body {
+      padding: 10px 14px;
+      font-family: "SF Mono", ui-monospace, monospace;
+      font-size: 10px;
+      line-height: 1.6;
+    }
+    .layout-a .diff-body .add { color: #248a3d; background: #e6f9ec; }
+    .layout-a .diff-body .del { color: #d70015; background: #ffebe9; }
+    .layout-a .toolbar {
+      height: 50px;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(20px);
+      border-top: .5px solid #d1d1d6;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+    }
+    .layout-a .toolbar .info { flex: 1; font-size: 13px; color: #6e6e73; }
+    .layout-a .toolbar .tb-btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .layout-a .toolbar .tb-btn.sec { background: #e5e5ea; color: #1d1d1f; }
+    .layout-a .toolbar .tb-btn.pri { background: #007aff; color: #fff; }
+
+    /* A 标注色 */
+    .anno-a-sidebar { border-color: #007aff; inset: 24px 0 50px 0; width: 28%; }
+    .anno-a-sidebar span { background: #007aff; color: #fff; }
+    .anno-a-files { border-color: #34c759; top: 24px; left: 28%; right: 32%; bottom: 50px; }
+    .anno-a-files span { background: #34c759; color: #fff; }
+    .anno-a-diff { border-color: #ff9500; top: 24px; right: 0; width: 32%; bottom: 50px; }
+    .anno-a-diff span { background: #ff9500; color: #fff; }
+    .anno-a-toolbar { border-color: #af52de; bottom: 0; left: 0; right: 0; height: 50px; }
+    .anno-a-toolbar span { background: #af52de; color: #fff; }
+
+    /* ===== STYLE C 布局 ===== */
+    .layout-c {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(145deg, #667eea, #764ba2);
+      padding: 10px;
+      gap: 10px;
+    }
+    .layout-c .header-card {
+      background: rgba(255,255,255,.75);
+      backdrop-filter: blur(20px);
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #1a1a2e;
+    }
+    .layout-c .avatar {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 10px;
+      display: grid; place-items: center;
+      color: #fff; font-weight: 700; font-size: 14px;
+    }
+    .layout-c .header-card .info { flex: 1; }
+    .layout-c .header-card h3 { font-size: 15px; font-weight: 700; }
+    .layout-c .header-card p { font-size: 11px; color: #5c5c7a; margin-top: 1px; }
+    .layout-c .pill {
+      background: rgba(99,102,241,.15);
+      color: #6366f1;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 999px;
+    }
+    .layout-c .body { flex: 1; display: flex; gap: 10px; overflow: hidden; }
+    .layout-c .col-sidebar {
+      width: 26%;
+      background: rgba(255,255,255,.72);
+      backdrop-filter: blur(20px);
+      border-radius: 14px;
+      padding: 8px;
+      color: #1a1a2e;
+    }
+    .layout-c .col-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+    .layout-c .file-card {
+      flex: 1;
+      background: rgba(255,255,255,.72);
+      backdrop-filter: blur(20px);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      color: #1a1a2e;
+    }
+    .layout-c .search-row {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.5);
+      display: flex;
+      gap: 8px;
+    }
+    .layout-c .search-row input {
+      flex: 1;
+      border: none;
+      background: rgba(255,255,255,.6);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+    .layout-c .chip { padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; background: rgba(255,255,255,.5); }
+    .layout-c .chip.on { background: #6366f1; color: #fff; }
+    .layout-c .c-item {
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 2px 6px;
+      border-radius: 10px;
+      font-size: 13px;
+    }
+    .layout-c .c-item.sel { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .layout-c .c-item .icon { width: 30px; height: 30px; background: rgba(255,255,255,.8); border-radius: 8px; display: grid; place-items: center; font-size: 14px; }
+    .layout-c .c-item .info { flex: 1; }
+    .layout-c .c-item .info small { display: block; font-size: 10px; color: #5c5c7a; margin-top: 1px; }
+    .layout-c .tag { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+    .layout-c .tag.m { background: #fef3c7; color: #b45309; }
+    .layout-c .tag.a { background: #d1fae5; color: #047857; }
+    .layout-c .diff-card {
+      height: 38%;
+      background: rgba(255,255,255,.72);
+      backdrop-filter: blur(20px);
+      border-radius: 14px;
+      overflow: hidden;
+      color: #1a1a2e;
+    }
+    .layout-c .diff-card-head {
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-bottom: 1px solid rgba(255,255,255,.4);
+    }
+    .layout-c .diff-mini {
+      padding: 8px 12px;
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+      line-height: 1.65;
+    }
+    .layout-c .diff-mini .a { color: #10b981; }
+    .layout-c .diff-mini .d { color: #ef4444; }
+    .layout-c .fab-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .layout-c .fab {
+      flex: 1;
+      padding: 12px;
+      border-radius: 14px;
+      border: none;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .layout-c .fab.sec { background: rgba(255,255,255,.72); color: #1a1a2e; }
+    .layout-c .fab.pri { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
+    .layout-c .s-title { font-size: 10px; font-weight: 700; color: #5c5c7a; padding: 6px 8px 4px; text-transform: uppercase; }
+    .layout-c .s-card { padding: 10px; border-radius: 10px; font-size: 13px; margin: 2px 0; }
+    .layout-c .s-card.active { background: #fff; box-shadow: 0 2px 8px rgba(99,102,241,.2); }
+    .layout-c .s-card small { display: block; font-size: 10px; color: #5c5c7a; margin-top: 2px; }
+
+    /* C 标注 - C是上下+左中结构，不是三栏 */
+    .anno-c-header { border-color: #fff; top: 10px; left: 10px; right: 10px; height: 56px; }
+    .anno-c-header span { background: #fff; color: #764ba2; }
+    .anno-c-sidebar { border-color: #007aff; top: 76px; left: 10px; width: calc(26% - 5px); bottom: 10px; }
+    .anno-c-sidebar span { background: #007aff; color: #fff; }
+    .anno-c-files { border-color: #34c759; top: 76px; left: calc(26% + 5px); right: 10px; bottom: calc(38% + 58px); }
+    .anno-c-files span { background: #34c759; color: #fff; }
+    .anno-c-diff { border-color: #ff9500; right: 10px; left: calc(26% + 5px); height: 38%; bottom: 58px; }
+    .anno-c-diff span { background: #ff9500; color: #fff; }
+    .anno-c-fab { border-color: #af52de; bottom: 10px; left: calc(26% + 5px); right: 10px; height: 44px; }
+    .anno-c-fab span { background: #af52de; color: #fff; }
+
+    /* 布局说明 */
+    .layout-desc {
+      background: #2c2c2e;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #98989d;
+      line-height: 1.7;
+    }
+    .layout-desc strong { color: #fff; }
+    .layout-desc ul { margin: 8px 0 0 16px; }
+
+    /* ===== 更多 iOS 原生风格 ===== */
+    .ios-section { max-width: 1400px; margin: 0 auto; }
+    .ios-section h2 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .ios-section > p { font-size: 13px; color: #98989d; margin-bottom: 16px; }
+
+    .style-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .style-tabs button {
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: 1px solid #3a3a3c;
+      background: #2c2c2e;
+      color: #98989d;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .style-tabs button.active { background: #007aff; border-color: #007aff; color: #fff; font-weight: 600; }
+
+    .ios-ipad { max-width: 900px; margin: 0 auto; }
+
+    /* G: iOS Files 原生 */
+    .ios-g {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: #f2f2f7;
+      color: #000;
+    }
+    .ios-g .sb { height: 24px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; }
+    .ios-g .split { flex: 1; display: flex; overflow: hidden; }
+    .ios-g .sidebar {
+      width: 320px;
+      background: #f2f2f7;
+      border-right: .5px solid #c6c6c8;
+      display: flex;
+      flex-direction: column;
+    }
+    .ios-g .sidebar-toolbar {
+      padding: 8px 16px 4px;
+      display: flex;
+      gap: 16px;
+    }
+    .ios-g .sidebar-toolbar span { font-size: 17px; color: #007aff; }
+    .ios-g .large-title {
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: .01em;
+      padding: 4px 16px 12px;
+    }
+    .ios-g .sidebar-list { flex: 1; overflow-y: auto; }
+    .ios-g .sg-section { margin-bottom: 20px; }
+    .ios-g .sg-header {
+      font-size: 13px;
+      color: #3c3c43;
+      opacity: .6;
+      padding: 0 32px 6px;
+      text-transform: uppercase;
+    }
+    .ios-g .sg-item {
+      padding: 10px 32px;
+      font-size: 17px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .ios-g .sg-item.active { background: rgba(0,122,255,.12); color: #007aff; }
+    .ios-g .sg-item .ico { font-size: 20px; width: 28px; text-align: center; }
+    .ios-g .sg-item .badge {
+      margin-left: auto;
+      background: #007aff;
+      color: #fff;
+      font-size: 13px;
+      min-width: 24px;
+      height: 24px;
+      border-radius: 12px;
+      display: grid; place-items: center;
+      font-weight: 600;
+    }
+    .ios-g .content { flex: 1; display: flex; flex-direction: column; background: #fff; }
+    .ios-g .content-nav {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: .5px solid #c6c6c8;
+      gap: 8px;
+    }
+    .ios-g .content-nav .back { color: #007aff; font-size: 17px; }
+    .ios-g .content-nav .ctitle { flex: 1; font-size: 17px; font-weight: 600; text-align: center; }
+    .ios-g .content-nav .action { color: #007aff; font-size: 17px; font-weight: 600; }
+    .ios-g .grouped-list { flex: 1; overflow-y: auto; padding: 16px; background: #f2f2f7; }
+    .ios-g .group {
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .ios-g .g-row {
+      padding: 11px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 17px;
+      border-bottom: .5px solid #c6c6c8;
+    }
+    .ios-g .g-row:last-child { border-bottom: none; }
+    .ios-g .g-row .st { font-size: 13px; font-weight: 600; width: 18px; text-align: center; }
+    .ios-g .g-row .st.m { color: #ff9500; }
+    .ios-g .g-row .st.a { color: #34c759; }
+    .ios-g .g-row .st.d { color: #ff3b30; }
+    .ios-g .g-row .chev { margin-left: auto; color: #c7c7cc; font-size: 14px; }
+    .ios-g .bottom-tab {
+      height: 50px;
+      background: rgba(255,255,255,.94);
+      backdrop-filter: blur(20px);
+      border-top: .5px solid #c6c6c8;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      font-size: 10px;
+      color: #8e8e93;
+    }
+    .ios-g .bottom-tab .tab.active { color: #007aff; }
+    .ios-g .bottom-tab .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .ios-g .bottom-tab .tab .ico { font-size: 22px; }
+
+    /* H: NavigationSplitView 三栏 */
+    .ios-h {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      color: #000;
+    }
+    .ios-h .sb { height: 24px; background: #fff; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; }
+    .ios-h .triple { flex: 1; display: flex; overflow: hidden; }
+    .ios-h .col1 {
+      width: 250px;
+      background: #f2f2f7;
+      border-right: .5px solid #c6c6c8;
+      display: flex;
+      flex-direction: column;
+    }
+    .ios-h .col1-head {
+      padding: 12px 16px 8px;
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .ios-h .col1-item {
+      padding: 8px 16px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 8px;
+      margin: 1px 8px;
+    }
+    .ios-h .col1-item.sel { background: rgba(0,122,255,.15); color: #007aff; }
+    .ios-h .col2 {
+      width: 280px;
+      border-right: .5px solid #c6c6c8;
+      display: flex;
+      flex-direction: column;
+    }
+    .ios-h .col2-head {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 17px;
+      font-weight: 600;
+      border-bottom: .5px solid #c6c6c8;
+      justify-content: space-between;
+    }
+    .ios-h .col2-head button {
+      background: none; border: none; color: #007aff; font-size: 17px;
+    }
+    .ios-h .col2-list { flex: 1; overflow-y: auto; }
+    .ios-h .c2-row {
+      padding: 10px 16px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: .5px solid #f2f2f7;
+    }
+    .ios-h .c2-row.sel { background: #e8f2fd; }
+    .ios-h .col3 { flex: 1; display: flex; flex-direction: column; background: #fafafa; }
+    .ios-h .col3-head {
+      height: 44px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      font-size: 15px;
+      font-weight: 600;
+      border-bottom: .5px solid #e5e5ea;
+      gap: 8px;
+    }
+    .ios-h .col3-head .seg {
+      margin-left: auto;
+      display: flex;
+      background: #e5e5ea;
+      border-radius: 8px;
+      padding: 2px;
+      font-size: 12px;
+    }
+    .ios-h .col3-head .seg span {
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+    .ios-h .col3-head .seg span.on { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+    .ios-h .diff-view {
+      flex: 1;
+      padding: 12px 16px;
+      font-family: "SF Mono", ui-monospace, monospace;
+      font-size: 11px;
+      line-height: 1.65;
+      overflow: auto;
+    }
+    .ios-h .diff-view .add { background: #e6ffec; color: #1a7f37; padding: 0 4px; }
+    .ios-h .diff-view .del { background: #ffebe9; color: #cf222e; padding: 0 4px; }
+    .ios-h .ios-toolbar {
+      height: 44px;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(20px);
+      border-top: .5px solid #c6c6c8;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+    .ios-h .ios-toolbar .sp { flex: 1; }
+    .ios-h .ios-toolbar .tbtn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .ios-h .ios-toolbar .tbtn.fill { background: #007aff; color: #fff; }
+    .ios-h .ios-toolbar .tbtn.plain { background: #e5e5ea; color: #000; }
+
+    /* I: iOS 18 浮动工具栏 */
+    .ios-i {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: #f2f2f7;
+      color: #000;
+    }
+    .ios-i .sb { height: 24px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; }
+    .ios-i .main { flex: 1; display: flex; overflow: hidden; position: relative; }
+    .ios-i .sidebar {
+      width: 280px;
+      background: #f2f2f7;
+      border-right: .5px solid #c6c6c8;
+      padding-top: 8px;
+    }
+    .ios-i .lt { font-size: 28px; font-weight: 700; padding: 8px 20px 16px; }
+    .ios-i .inset-group {
+      margin: 0 16px 16px;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .ios-i .inset-row {
+      padding: 11px 16px;
+      font-size: 17px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: .5px solid #c6c6c8;
+    }
+    .ios-i .inset-row:last-child { border-bottom: none; }
+    .ios-i .inset-row.sel { color: #007aff; }
+    .ios-i .inset-row .sub { margin-left: auto; font-size: 15px; color: #8e8e93; }
+    .ios-i .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+    }
+    .ios-i .content-top {
+      padding: 16px 20px 12px;
+      border-bottom: .5px solid #e5e5ea;
+    }
+    .ios-i .content-top h2 { font-size: 22px; font-weight: 700; }
+    .ios-i .content-top p { font-size: 15px; color: #8e8e93; margin-top: 4px; }
+    .ios-i .file-scroll { flex: 1; overflow-y: auto; }
+    .ios-i .f-cell {
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-bottom: .5px solid #f2f2f7;
+    }
+    .ios-i .f-cell.sel { background: #f2f2f7; }
+    .ios-i .f-cell .fi {
+      width: 40px; height: 40px;
+      background: #007aff;
+      border-radius: 8px;
+      display: grid; place-items: center;
+      color: #fff; font-size: 18px;
+    }
+    .ios-i .f-cell .fi.folder { background: #007aff; }
+    .ios-i .f-cell .fi.swift { background: #ff9500; }
+    .ios-i .f-cell .fi.added { background: #34c759; }
+    .ios-i .f-cell .meta { flex: 1; }
+    .ios-i .f-cell .meta .n { font-size: 17px; font-weight: 400; }
+    .ios-i .f-cell .meta .p { font-size: 13px; color: #8e8e93; margin-top: 2px; }
+    .ios-i .f-cell .status-pill {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #fff3e0;
+      color: #e65100;
+    }
+    .ios-i .float-bar {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-30%);
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(24px);
+      border-radius: 14px;
+      padding: 8px 12px;
+      display: flex;
+      gap: 4px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.06);
+    }
+    .ios-i .float-bar button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      background: transparent;
+      color: #007aff;
+    }
+    .ios-i .float-bar button.primary {
+      background: #007aff;
+      color: #fff;
+    }
+    .ios-i .float-bar .sep { width: 1px; background: #e5e5ea; margin: 4px 0; }
+
+    .ios-screen { display: none; height: 100%; }
+    .ios-screen.active { display: flex; flex-direction: column; }
+
+    .legend {
+      max-width: 900px;
+      margin: 12px auto 0;
+      font-size: 13px;
+      color: #98989d;
+      text-align: center;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>A / C 布局结构对比 + iOS 原生风格</h1>
+    <p>上半部分并排展示 A 和 C 的<strong>布局骨架</strong>（虚线框标注各区域）。下半部分新增 G/H/I 三种更贴近 iOS 系统 App 的风格。</p>
+  </div>
+
+  <!-- ===== A vs C 布局对比 ===== -->
+  <section class="compare-section">
+    <div class="compare-title">
+      布局对比
+      <span>虚线框 = 功能区域划分</span>
+    </div>
+
+    <div class="compare-row">
+
+      <!-- A -->
+      <div class="compare-card">
+        <div class="compare-label">
+          <h2>A · Apple 极简 — 经典三栏</h2>
+          <span class="tag">Sidebar + List + Detail</span>
+        </div>
+        <div class="ipad">
+          <div class="ipad-inner layout-a">
+            <div class="status-bar"><span>9:41</span><span>100%</span></div>
+            <div class="nav-bar">
+              <button class="btn-blue">编辑</button>
+              <span class="title">mobile-app</span>
+              <button class="btn-blue bold">提交</button>
+            </div>
+            <div class="body">
+              <div class="col-sidebar">
+                <div class="sec-label">仓库</div>
+                <div class="list-item active"><span>📦</span> mobile-app</div>
+                <div class="list-item"><span>📦</span> backend-api</div>
+                <div class="sec-label">快捷</div>
+                <div class="list-item"><span>📋</span> 变更 (5)</div>
+              </div>
+              <div class="col-files">
+                <div class="path">/trunk/src/components</div>
+                <div class="file-row sel"><span class="dot m"></span> LoginView.swift</div>
+                <div class="file-row"><span class="dot a"></span> AuthService.swift</div>
+                <div class="file-row"><span class="dot m"></span> AppConfig.plist</div>
+                <div class="file-row"><span class="dot"></span> MainTabView.swift</div>
+              </div>
+              <div class="col-diff">
+                <div class="diff-head">变更预览</div>
+                <div class="diff-body">
+                  <div class="del">- Text("登录")</div>
+                  <div class="add">+ Text("欢迎回来")</div>
+                  <div class="add">+ .font(.title2.bold())</div>
+                </div>
+              </div>
+            </div>
+            <div class="toolbar">
+              <span class="info">5 处变更</span>
+              <button class="tb-btn sec">更新</button>
+              <button class="tb-btn pri">提交</button>
+            </div>
+            <!-- 标注 -->
+            <div class="layout-anno">
+              <div class="anno-zone anno-a-sidebar"><span>侧栏 28%</span></div>
+              <div class="anno-zone anno-a-files"><span>文件列表 flex</span></div>
+              <div class="anno-zone anno-a-diff"><span>Diff 32%</span></div>
+              <div class="anno-zone anno-a-toolbar"><span>底栏工具条</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="layout-desc">
+          <strong>A 的布局逻辑：</strong>标准 iPad 三栏 — 左仓库导航、中文件列表、右 Diff 详情。底部固定工具栏放「更新/提交」。类似 Mail、Finder 分栏模式。
+          <ul>
+            <li>导航栏：标题 + 右侧操作按钮</li>
+            <li>三列等宽感知：侧栏窄、Diff 固定宽</li>
+            <li>适合：频繁切换文件、对比变更</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- C -->
+      <div class="compare-card">
+        <div class="compare-label">
+          <h2>C · 玻璃拟态 — 上下分层</h2>
+          <span class="tag">Header + 左栏 + 上下堆叠</span>
+        </div>
+        <div class="ipad">
+          <div class="ipad-inner layout-c">
+            <div class="header-card">
+              <div class="avatar">SV</div>
+              <div class="info"><h3>mobile-app</h3><p>r1284 · 5 处变更</p></div>
+              <div class="pill">待提交</div>
+            </div>
+            <div class="body">
+              <div class="col-sidebar">
+                <div class="s-title">仓库</div>
+                <div class="s-card active">mobile-app<small>5 待提交</small></div>
+                <div class="s-card">backend-api<small>最新</small></div>
+              </div>
+              <div class="col-main">
+                <div class="file-card">
+                  <div class="search-row">
+                    <input placeholder="搜索文件" />
+                    <span class="chip on">全部</span>
+                    <span class="chip">变更</span>
+                  </div>
+                  <div class="c-item sel">
+                    <div class="icon">📄</div>
+                    <div class="info">LoginView.swift<small>src/components</small></div>
+                    <span class="tag m">修改</span>
+                  </div>
+                  <div class="c-item">
+                    <div class="icon">📄</div>
+                    <div class="info">AuthService.swift<small>src/services</small></div>
+                    <span class="tag a">新增</span>
+                  </div>
+                  <div class="c-item">
+                    <div class="icon">📄</div>
+                    <div class="info">AppConfig.plist</div>
+                    <span class="tag m">修改</span>
+                  </div>
+                </div>
+                <div class="diff-card">
+                  <div class="diff-card-head">LoginView.swift · +2 −1</div>
+                  <div class="diff-mini">
+                    <div class="d">- Text("登录")</div>
+                    <div class="a">+ Text("欢迎回来")</div>
+                  </div>
+                </div>
+                <div class="fab-row">
+                  <button class="fab sec">更新</button>
+                  <button class="fab pri">提交</button>
+                </div>
+              </div>
+            </div>
+            <!-- 标注 -->
+            <div class="layout-anno">
+              <div class="anno-zone anno-c-header"><span>顶栏卡片</span></div>
+              <div class="anno-zone anno-c-sidebar"><span>侧栏 26%</span></div>
+              <div class="anno-zone anno-c-files"><span>文件卡片 上部</span></div>
+              <div class="anno-zone anno-c-diff"><span>Diff 卡片 下部 38%</span></div>
+              <div class="anno-zone anno-c-fab"><span>大按钮区</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="layout-desc">
+          <strong>C 的布局逻辑：</strong>不是三栏并列 — 右侧是<strong>上下堆叠</strong>：文件卡片在上、Diff 卡片在下、底部大按钮。整体包在渐变背景 + 毛玻璃卡片里。
+          <ul>
+            <li>顶栏：仓库信息卡片（非系统导航栏）</li>
+            <li>右侧纵向：文件 → Diff → 操作按钮</li>
+            <li>适合：触控操作、视觉优先，但信息密度低于 A</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== 新 iOS 原生风格 ===== -->
+  <section class="ios-section">
+    <h2>更多 iOS 原生风格（G / H / I）</h2>
+    <p>基于 iOS 系统组件：Large Title、Grouped List、NavigationSplitView、浮动工具栏</p>
+
+    <div class="style-tabs" id="iosPicker">
+      <button class="active" data-ios="g">G · Files 文件 App</button>
+      <button data-ios="h">H · 三栏 Split View</button>
+      <button data-ios="i">I · iOS 18 浮动工具栏</button>
+    </div>
+
+    <div class="ios-ipad">
+      <div class="ipad" style="max-width:900px;margin:0 auto">
+        <div class="ipad-inner">
+
+          <!-- G: Files -->
+          <div class="ios-g ios-screen active" data-ios="g">
+            <div class="sb"><span>9:41</span><span>WiFi 100%</span></div>
+            <div class="split">
+              <div class="sidebar">
+                <div class="sidebar-toolbar">
+                  <span>编辑</span>
+                  <span style="margin-left:auto;font-weight:600;color:#000">☰</span>
+                </div>
+                <div class="large-title">浏览</div>
+                <div class="sidebar-list">
+                  <div class="sg-section">
+                    <div class="sg-header">位置</div>
+                    <div class="sg-item active"><span class="ico">📦</span> mobile-app <span class="badge">5</span></div>
+                    <div class="sg-item"><span class="ico">📦</span> backend-api</div>
+                  </div>
+                  <div class="sg-section">
+                    <div class="sg-header">标签</div>
+                    <div class="sg-item"><span class="ico">🔴</span> 待提交</div>
+                    <div class="sg-item"><span class="ico">🕐</span> 最近</div>
+                  </div>
+                </div>
+              </div>
+              <div class="content">
+                <div class="content-nav">
+                  <span class="back">mobile-app</span>
+                  <span class="ctitle">components</span>
+                  <span class="action">选择</span>
+                </div>
+                <div class="grouped-list">
+                  <div class="group">
+                    <div class="g-row"><span class="st"></span> 📁 views <span class="chev">›</span></div>
+                    <div class="g-row"><span class="st m">M</span> LoginView.swift <span class="chev">›</span></div>
+                    <div class="g-row"><span class="st a">A</span> AuthService.swift <span class="chev">›</span></div>
+                  </div>
+                  <div class="group">
+                    <div class="g-row"><span class="st m">M</span> AppConfig.plist <span class="chev">›</span></div>
+                    <div class="g-row"><span class="st d">D</span> LegacyAuth.m <span class="chev">›</span></div>
+                  </div>
+                </div>
+                <div class="bottom-tab">
+                  <div class="tab active"><span class="ico">📂</span>浏览</div>
+                  <div class="tab"><span class="ico">📋</span>变更</div>
+                  <div class="tab"><span class="ico">⬇</span>更新</div>
+                  <div class="tab"><span class="ico">✓</span>提交</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- H: NavigationSplitView -->
+          <div class="ios-h ios-screen" data-ios="h">
+            <div class="sb"><span>9:41</span><span>100%</span></div>
+            <div class="triple">
+              <div class="col1">
+                <div class="col1-head">仓库</div>
+                <div class="col1-item sel">📦 mobile-app</div>
+                <div class="col1-item">📦 backend-api</div>
+                <div class="col1-item" style="margin-top:12px">📋 变更列表</div>
+                <div class="col1-item">🕐 历史</div>
+              </div>
+              <div class="col2">
+                <div class="col2-head">
+                  <span>components</span>
+                  <button>筛选</button>
+                </div>
+                <div class="col2-list">
+                  <div class="c2-row"><span style="color:#ff9500;font-weight:700">M</span> LoginView.swift</div>
+                  <div class="c2-row sel"><span style="color:#34c759;font-weight:700">A</span> AuthService.swift</div>
+                  <div class="c2-row"><span style="color:#ff9500;font-weight:700">M</span> AppConfig.plist</div>
+                  <div class="c2-row"><span style="color:#ff3b30;font-weight:700">D</span> LegacyAuth.m</div>
+                </div>
+              </div>
+              <div class="col3">
+                <div class="col3-head">
+                  AuthService.swift
+                  <div class="seg"><span>内容</span><span class="on">Diff</span></div>
+                </div>
+                <div class="diff-view">
+                  <div class="del">- Text("登录")</div>
+                  <div class="add">+ Text("欢迎回来")</div>
+                  <div class="add">+     .font(.title2.bold())</div>
+                </div>
+              </div>
+            </div>
+            <div class="ios-toolbar">
+              <span class="sp" style="font-size:13px;color:#8e8e93">5 处变更</span>
+              <button class="tbtn plain">更新</button>
+              <button class="tbtn fill">提交</button>
+            </div>
+          </div>
+
+          <!-- I: iOS 18 floating toolbar -->
+          <div class="ios-i ios-screen" data-ios="i">
+            <div class="sb"><span>9:41</span><span>100%</span></div>
+            <div class="main">
+              <div class="sidebar">
+                <div class="lt">SVN</div>
+                <div class="inset-group">
+                  <div class="inset-row sel">📦 mobile-app <span class="sub">5</span></div>
+                  <div class="inset-row">📦 backend-api <span class="sub">最新</span></div>
+                </div>
+                <div class="inset-group">
+                  <div class="inset-row">📋 变更列表</div>
+                  <div class="inset-row">🕐 提交历史</div>
+                  <div class="inset-row">⚙️ 设置</div>
+                </div>
+              </div>
+              <div class="content-area">
+                <div class="content-top">
+                  <h2>components</h2>
+                  <p>5 个文件有变更 · r1284</p>
+                </div>
+                <div class="file-scroll">
+                  <div class="f-cell sel">
+                    <div class="fi swift">S</div>
+                    <div class="meta"><div class="n">LoginView.swift</div><div class="p">修改 · 2 分钟前</div></div>
+                    <span class="status-pill">M</span>
+                  </div>
+                  <div class="f-cell">
+                    <div class="fi added">S</div>
+                    <div class="meta"><div class="n">AuthService.swift</div><div class="p">新增</div></div>
+                    <span class="status-pill" style="background:#e8f5e9;color:#2e7d32">A</span>
+                  </div>
+                  <div class="f-cell">
+                    <div class="fi swift">P</div>
+                    <div class="meta"><div class="n">AppConfig.plist</div><div class="p">修改</div></div>
+                    <span class="status-pill">M</span>
+                  </div>
+                  <div class="f-cell">
+                    <div class="fi folder">📁</div>
+                    <div class="meta"><div class="n">views</div><div class="p">3 个项目</div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="float-bar">
+                <button>更新</button>
+                <div class="sep"></div>
+                <button>Diff</button>
+                <div class="sep"></div>
+                <button class="primary">提交</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <p class="legend" id="iosLegend">
+      <strong>G · Files 文件 App</strong> — Large Title 侧栏 + 分组圆角列表 + 底部 Tab Bar，和系统「文件」App 一致
+    </p>
+  </section>
+
+  <script>
+    const iosLabels = {
+      g: 'G · Files 文件 App — Large Title 侧栏 + 分组圆角列表 + 底部 Tab Bar，和系统「文件」App 一致',
+      h: 'H · 三栏 Split View — SwiftUI NavigationSplitView 标准三栏，Mail/备忘录 iPad 模式',
+      i: 'I · iOS 18 浮动工具栏 — Inset Grouped 列表 + 底部悬浮操作条，最新 iOS 设计语言'
+    };
+
+    document.getElementById('iosPicker').addEventListener('click', e => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const id = btn.dataset.ios;
+      document.querySelectorAll('#iosPicker button').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.ios-screen').forEach(s => s.classList.toggle('active', s.dataset.ios === id));
+      document.getElementById('iosLegend').innerHTML = '<strong>' + iosLabels[id] + '</strong>';
+    });
+  </script>
+</body>
+</html>

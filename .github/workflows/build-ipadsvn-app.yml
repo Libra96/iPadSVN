@@ -1,0 +1,75 @@
+name: Build iPadSVN App
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - 'iPadSVN/**'
+      - 'scripts/package-ipa.sh'
+      - '.github/workflows/build-ipadsvn-app.yml'
+  pull_request:
+    paths:
+      - 'iPadSVN/**'
+      - 'scripts/package-ipa.sh'
+      - '.github/workflows/build-ipadsvn-app.yml'
+
+jobs:
+  build-ipa:
+    name: Build IPA for iPad (no Mac needed on your side)
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode
+        run: xcodebuild -version
+
+      - name: Build for iOS device (unsigned)
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -project iPadSVN/iPadSVN.xcodeproj \
+            -scheme iPadSVN \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            ONLY_ACTIVE_ARCH=NO \
+            ARCHS=arm64
+
+      - name: Package IPA
+        run: |
+          set -euo pipefail
+          APP_PATH="$(find build/DerivedData -path '*/Release-iphoneos/iPadSVN.app' -type d | head -1)"
+          if [[ -z "$APP_PATH" ]]; then
+            echo "iPadSVN.app not found" >&2
+            find build/DerivedData -name '*.app' || true
+            exit 1
+          fi
+          echo "Found app: $APP_PATH"
+          chmod +x scripts/package-ipa.sh
+          bash scripts/package-ipa.sh "$APP_PATH" build/iPadSVN.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iPadSVN-ipa
+          path: |
+            build/iPadSVN.ipa
+          retention-days: 30
+
+      - name: Build summary
+        if: success()
+        run: |
+          echo "## iPadSVN IPA 已生成" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "1. 在本页底部 **Artifacts** 下载 \`iPadSVN-ipa\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "2. Windows 安装 [Sideloadly](https://sideloadly.io/)" >> "$GITHUB_STEP_SUMMARY"
+          echo "3. iPad 连电脑，用 Apple ID 侧载安装" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          ls -lh build/iPadSVN.ipa >> "$GITHUB_STEP_SUMMARY"

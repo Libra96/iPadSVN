@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iPadSVN — 精致版 v2</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f7f6f3;
+      --surface: #ffffff;
+      --ink: #37352f;
+      --ink-secondary: #787774;
+      --ink-tertiary: #aeaca8;
+      --line: rgba(0, 0, 0, 0.06);
+      --line-strong: rgba(0, 0, 0, 0.1);
+      --accent: #2383e2;
+      --accent-hover: #1a6fc2;
+      --commit: #0f7b6c;
+      --commit-hover: #0c6659;
+      --mod: #cb912f;
+      --add: #0f7b6c;
+      --del: #e03e3e;
+      --diff-add-bg: #edf3ec;
+      --diff-del-bg: #fbebec;
+      --sel: rgba(35, 131, 226, 0.08);
+      --font: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+      --r: 8px;
+      --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+
+    body {
+      font-family: var(--font);
+      background: #ececea;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 24px 48px;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .caption {
+      text-align: center;
+      margin-bottom: 24px;
+      max-width: 520px;
+    }
+    .caption h1 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .caption p {
+      font-size: 13px;
+      color: var(--ink-secondary);
+      line-height: 1.5;
+    }
+
+    /* iPad Pro 11" 横屏 */
+    .device {
+      width: min(1100px, 96vw);
+      aspect-ratio: 1194 / 834;
+      background: #1a1a1a;
+      border-radius: 22px;
+      padding: 11px;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.05) inset,
+        0 40px 80px rgba(0,0,0,0.18),
+        0 8px 24px rgba(0,0,0,0.08);
+    }
+    .app {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* —— 顶栏：极简 —— */
+    .toolbar {
+      height: 52px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .toolbar .mark {
+      width: 28px; height: 28px;
+      color: var(--ink);
+    }
+    .toolbar .title-block { flex: 1; min-width: 0; }
+    .toolbar .title-block h2 {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .toolbar .title-block span {
+      font-size: 12px;
+      color: var(--ink-tertiary);
+      font-family: var(--mono);
+      font-weight: 400;
+    }
+    .toolbar-actions { display: flex; align-items: center; gap: 8px; }
+    .btn-text {
+      padding: 6px 12px;
+      border: none;
+      background: none;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-secondary);
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 0.15s var(--ease), color 0.15s;
+    }
+    .btn-text:hover { background: var(--bg); color: var(--ink); }
+    .btn-commit {
+      padding: 7px 16px;
+      border: none;
+      border-radius: 6px;
+      background: var(--commit);
+      color: #fff;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s var(--ease), transform 0.1s;
+    }
+    .btn-commit:hover { background: var(--commit-hover); }
+    .btn-commit:active { transform: scale(0.98); }
+
+    /* —— 主体：两栏 —— */
+    .workspace {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+
+    /* 左：变更列表 */
+    .changes {
+      width: 42%;
+      max-width: 420px;
+      min-width: 300px;
+      background: var(--surface);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+    }
+    .changes-head {
+      padding: 16px 20px 12px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+    .changes-head h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+    .changes-head .count {
+      font-size: 12px;
+      color: var(--ink-tertiary);
+      font-variant-numeric: tabular-nums;
+    }
+    .changes-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 8px 16px;
+    }
+    .changes-scroll::-webkit-scrollbar { width: 0; }
+
+    .item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      margin-bottom: 1px;
+      border-radius: var(--r);
+      cursor: pointer;
+      transition: background 0.12s var(--ease);
+      border: 1px solid transparent;
+    }
+    .item:hover { background: var(--bg); }
+    .item.active {
+      background: var(--sel);
+      border-color: rgba(35, 131, 226, 0.15);
+    }
+    .item .indicator {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .item .indicator.m { background: var(--mod); }
+    .item .indicator.a { background: var(--add); }
+    .item .indicator.d { background: var(--del); }
+    .item .body { flex: 1; min-width: 0; }
+    .item .fname {
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .item .fpath {
+      font-size: 11px;
+      color: var(--ink-tertiary);
+      font-family: var(--mono);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .item .delta {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--ink-tertiary);
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    /* 右：Diff */
+    .viewer {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: var(--bg);
+    }
+    .viewer-head {
+      padding: 16px 24px 12px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .viewer-head h3 {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--mono);
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+    .viewer-head p {
+      font-size: 12px;
+      color: var(--ink-tertiary);
+      margin-top: 4px;
+    }
+    .viewer-body {
+      flex: 1;
+      overflow: auto;
+      padding: 20px 0;
+    }
+    .viewer-body::-webkit-scrollbar { width: 6px; }
+    .viewer-body::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+
+    .drow {
+      display: flex;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 22px;
+      min-height: 22px;
+    }
+    .drow .gutter {
+      width: 48px;
+      text-align: right;
+      padding-right: 16px;
+      color: var(--ink-tertiary);
+      user-select: none;
+      flex-shrink: 0;
+      font-size: 11px;
+    }
+    .drow .code {
+      flex: 1;
+      padding-right: 24px;
+      white-space: pre;
+    }
+    .drow.add { background: var(--diff-add-bg); }
+    .drow.add .code { color: #1a5c42; }
+    .drow.add .gutter { color: rgba(15, 123, 108, 0.5); }
+    .drow.del { background: var(--diff-del-bg); }
+    .drow.del .code { color: #9b2c2c; }
+    .drow.del .gutter { color: rgba(224, 62, 62, 0.45); }
+    .drow.ctx .code { color: var(--ink-secondary); }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink-tertiary);
+      font-size: 14px;
+      gap: 8px;
+      padding: 40px;
+    }
+    .empty-state svg { opacity: 0.25; }
+
+    /* Sheet */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(55, 53, 47, 0.25);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s var(--ease);
+      z-index: 10;
+    }
+    .overlay.open { opacity: 1; pointer-events: auto; }
+    .sheet {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-radius: 12px 12px 0 0;
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.08);
+      padding: 20px 24px 28px;
+      transform: translateY(100%);
+      transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+      z-index: 20;
+    }
+    .sheet.open { transform: translateY(0); }
+    .sheet h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+    .sheet-list { margin-bottom: 14px; }
+    .sheet-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+    }
+    .sheet-row:last-child { border-bottom: none; }
+    .sheet-row input { accent-color: var(--commit); width: 16px; height: 16px; }
+    .sheet textarea {
+      width: 100%;
+      min-height: 72px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--r);
+      padding: 12px 14px;
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+      resize: none;
+      outline: none;
+      color: var(--ink);
+      background: var(--bg);
+      margin-bottom: 14px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .sheet textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(35, 131, 226, 0.12);
+    }
+    .sheet .btn-commit { width: 100%; padding: 11px; font-size: 14px; }
+
+    .app { position: relative; }
+
+    .footnote {
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--ink-secondary);
+      text-align: center;
+      max-width: 480px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="caption">
+    <h1>精致版 · 重新设计</h1>
+    <p>Notion 纸感配色 · 两栏布局 · 无渐变无 Emoji · iPad 横屏 1194×834</p>
+  </div>
+
+  <div class="device">
+    <div class="app">
+      <header class="toolbar">
+        <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 3h12l4 6-10 13L2 9z"/></svg>
+        <div class="title-block">
+          <h2>mobile-app</h2>
+          <span>trunk · revision 1284</span>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn-text" id="btnSync">同步</button>
+          <button class="btn-commit" id="btnOpenCommit">提交</button>
+        </div>
+      </header>
+
+      <div class="workspace">
+        <aside class="changes">
+          <div class="changes-head">
+            <h3>待提交</h3>
+            <span class="count">5 files</span>
+          </div>
+          <div class="changes-scroll" id="list"></div>
+        </aside>
+
+        <main class="viewer" id="viewer">
+          <div class="viewer-head">
+            <h3 id="vTitle">LoginView.swift</h3>
+            <p id="vSub">2 additions, 1 deletion</p>
+          </div>
+          <div class="viewer-body" id="vBody"></div>
+        </main>
+      </div>
+
+      <div class="overlay" id="overlay"></div>
+      <div class="sheet" id="sheet">
+        <h4>提交到 revision 1285</h4>
+        <div class="sheet-list" id="sheetList"></div>
+        <textarea id="msg">更新登录页文案与样式</textarea>
+        <button class="btn-commit" id="btnDoCommit">确认提交</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="footnote">如果这版方向对了，回「就这版」；哪里还丑直接说具体位置（颜色、字体、间距、布局），我改到满意为止。</p>
+
+  <script>
+    const data = [
+      { name: 'LoginView.swift', path: 'src/components/', st: 'm', delta: '+2 −1',
+        sub: '2 additions, 1 deletion',
+        lines: [
+          {t:'ctx',n:'40',c:'struct LoginView: View {'},
+          {t:'ctx',n:'41',c:'    var body: some View {'},
+          {t:'del',n:'42',c:'        Text("登录")'},
+          {t:'add',n:'42',c:'        Text("欢迎回来")'},
+          {t:'add',n:'43',c:'            .font(.title2.bold())'},
+          {t:'ctx',n:'44',c:'        Button("Sign In") { auth.login() }'},
+        ]},
+      { name: 'AuthService.swift', path: 'src/services/', st: 'a', delta: '+48',
+        sub: '48 additions',
+        lines: [
+          {t:'add',n:'1',c:'import Foundation'},
+          {t:'add',n:'2',c:''},
+          {t:'add',n:'3',c:'final class AuthService {'},
+          {t:'add',n:'4',c:'    static let shared = AuthService()'},
+          {t:'add',n:'5',c:'}'},
+        ]},
+      { name: 'AppConfig.plist', path: '/', st: 'm', delta: '+1 −1',
+        sub: '1 addition, 1 deletion',
+        lines: [
+          {t:'ctx',n:'7',c:'    <key>Environment</key>'},
+          {t:'del',n:'8',c:'    <string>dev</string>'},
+          {t:'add',n:'8',c:'    <string>prod</string>'},
+        ]},
+      { name: 'LegacyAuth.m', path: 'src/legacy/', st: 'd', delta: '−120',
+        sub: '120 deletions',
+        lines: [
+          {t:'del',n:'1',c:'// Legacy authentication module'},
+          {t:'del',n:'2',c:'@implementation LegacyAuth'},
+        ]},
+    ];
+
+    let cur = 0;
+
+    function renderList() {
+      document.getElementById('list').innerHTML = data.map((f, i) => `
+        <div class="item ${i===cur?'active':''}" data-i="${i}">
+          <span class="indicator ${f.st}"></span>
+          <div class="body">
+            <div class="fname">${f.name}</div>
+            <div class="fpath">${f.path}</div>
+          </div>
+          <span class="delta">${f.delta}</span>
+        </div>
+      `).join('');
+      document.querySelectorAll('.item').forEach(el => {
+        el.addEventListener('click', () => { cur = +el.dataset.i; renderList(); renderDiff(); });
+      });
+    }
+
+    function renderDiff() {
+      const f = data[cur];
+      document.getElementById('vTitle').textContent = f.name;
+      document.getElementById('vSub').textContent = f.sub;
+      document.getElementById('vBody').innerHTML = f.lines.map(l =>
+        `<div class="drow ${l.t}"><span class="gutter">${l.n}</span><span class="code">${esc(l.c)}</span></div>`
+      ).join('');
+    }
+
+    function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+    function openSheet() {
+      document.getElementById('sheetList').innerHTML = data.map(f =>
+        `<div class="sheet-row"><input type="checkbox" checked><span class="indicator ${f.st}"></span>${f.name}</div>`
+      ).join('');
+      document.getElementById('overlay').classList.add('open');
+      document.getElementById('sheet').classList.add('open');
+    }
+    function closeSheet() {
+      document.getElementById('overlay').classList.remove('open');
+      document.getElementById('sheet').classList.remove('open');
+    }
+
+    document.getElementById('btnOpenCommit').addEventListener('click', openSheet);
+    document.getElementById('overlay').addEventListener('click', closeSheet);
+    document.getElementById('btnDoCommit').addEventListener('click', closeSheet);
+    document.getElementById('btnSync').addEventListener('click', () => {
+      const b = document.getElementById('btnSync');
+      b.textContent = '已同步';
+      setTimeout(() => b.textContent = '同步', 1500);
+    });
+
+    renderList();
+    renderDiff();
+  </script>
+</body>
+</html>

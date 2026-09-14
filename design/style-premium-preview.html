@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iPadSVN — 精致版预览</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep: #0a0a0f;
+      --bg-panel: rgba(18, 18, 26, 0.72);
+      --bg-elevated: rgba(28, 28, 40, 0.85);
+      --bg-hover: rgba(255, 255, 255, 0.04);
+      --bg-active: rgba(99, 102, 241, 0.12);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-bright: rgba(255, 255, 255, 0.14);
+      --text: #f4f4f5;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --accent: #818cf8;
+      --accent-glow: rgba(129, 140, 248, 0.35);
+      --accent-2: #c084fc;
+      --green: #4ade80;
+      --green-bg: rgba(74, 222, 128, 0.12);
+      --amber: #fbbf24;
+      --amber-bg: rgba(251, 191, 36, 0.12);
+      --red: #f87171;
+      --red-bg: rgba(248, 113, 113, 0.12);
+      --radius: 14px;
+      --radius-sm: 10px;
+      --font: "DM Sans", -apple-system, sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, monospace;
+      --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255,255,255,0.06);
+      --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-deep);
+      min-height: 100vh;
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* 环境光背景 */
+    .ambient {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .ambient .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.5;
+      animation: drift 20s ease-in-out infinite;
+    }
+    .ambient .o1 { width: 500px; height: 500px; background: #4338ca; top: -10%; left: -5%; }
+    .ambient .o2 { width: 400px; height: 400px; background: #7c3aed; bottom: -15%; right: -5%; animation-delay: -7s; }
+    .ambient .o3 { width: 300px; height: 300px; background: #2563eb; top: 40%; left: 50%; animation-delay: -14s; opacity: 0.25; }
+    .ambient .noise {
+      position: absolute;
+      inset: 0;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -20px) scale(1.05); }
+      66% { transform: translate(-20px, 15px) scale(0.95); }
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 24px 40px;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 28px;
+      animation: fadeUp 0.6s ease both;
+    }
+    .hero .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(129, 140, 248, 0.15);
+      border: 1px solid rgba(129, 140, 248, 0.3);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 12px;
+      letter-spacing: 0.02em;
+    }
+    .hero .badge::before {
+      content: "";
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+      animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .hero h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .hero p { font-size: 14px; color: var(--text-secondary); max-width: 480px; margin: 0 auto; line-height: 1.6; }
+
+    /* iPad 设备 */
+    .device {
+      animation: fadeUp 0.7s 0.1s ease both;
+      border-radius: 32px;
+      padding: 14px;
+      background: linear-gradient(145deg, #2a2a32, #141418);
+      box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+    .screen {
+      aspect-ratio: 4/3;
+      border-radius: 18px;
+      overflow: hidden;
+      position: relative;
+      background: #0e0e14;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 顶栏 */
+    .topbar {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(14, 14, 20, 0.8);
+      backdrop-filter: blur(16px);
+      flex-shrink: 0;
+    }
+    .logo-mark {
+      width: 32px; height: 32px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      display: grid; place-items: center;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+    .logo-mark svg { width: 18px; height: 18px; }
+    .topbar .project { flex: 1; min-width: 0; }
+    .topbar .project h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+    .topbar .project p { font-size: 11px; color: var(--text-muted); margin-top: 1px; font-family: var(--mono); }
+    .rev-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .rev-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px rgba(74,222,128,0.6); }
+    .icon-btn {
+      width: 36px; height: 36px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      display: grid; place-items: center;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .icon-btn:hover { background: var(--bg-hover); color: var(--text); border-color: var(--border-bright); }
+
+    /* 三栏主体 */
+    .main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* 侧栏 */
+    .sidebar {
+      width: 200px;
+      border-right: 1px solid var(--border);
+      padding: 14px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: rgba(12, 12, 18, 0.6);
+      flex-shrink: 0;
+    }
+    .nav-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      padding: 8px 10px 4px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+      border: 1px solid transparent;
+    }
+    .nav-item:hover { background: var(--bg-hover); }
+    .nav-item.active {
+      background: var(--bg-active);
+      border-color: rgba(129, 140, 248, 0.25);
+      box-shadow: 0 0 20px rgba(129, 140, 248, 0.08);
+    }
+    .nav-item .ni {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-size: 13px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+    }
+    .nav-item.active .ni {
+      background: linear-gradient(135deg, rgba(99,102,241,0.3), rgba(168,85,247,0.2));
+      border-color: rgba(129,140,248,0.3);
+    }
+    .nav-item .nt { flex: 1; font-size: 13px; font-weight: 500; }
+    .nav-item .nc {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(251, 191, 36, 0.2);
+      color: var(--amber);
+    }
+
+    /* 文件列 */
+    .files-col {
+      width: 240px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      background: rgba(14, 14, 20, 0.5);
+      flex-shrink: 0;
+    }
+    .files-head {
+      padding: 12px 14px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .files-head span { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+    .seg-control {
+      display: flex;
+      background: var(--bg-elevated);
+      border-radius: 8px;
+      padding: 2px;
+      border: 1px solid var(--border);
+    }
+    .seg-control button {
+      padding: 4px 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: var(--font);
+    }
+    .seg-control button.on {
+      background: rgba(255,255,255,0.1);
+      color: var(--text);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    .file-scroll { flex: 1; overflow-y: auto; padding: 0 8px 8px; }
+    .file-scroll::-webkit-scrollbar { width: 4px; }
+    .file-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+    .f-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+      margin-bottom: 2px;
+      border: 1px solid transparent;
+      animation: fadeIn 0.3s ease both;
+    }
+    .f-row:nth-child(1) { animation-delay: 0.05s; }
+    .f-row:nth-child(2) { animation-delay: 0.1s; }
+    .f-row:nth-child(3) { animation-delay: 0.15s; }
+    .f-row:nth-child(4) { animation-delay: 0.2s; }
+    .f-row:nth-child(5) { animation-delay: 0.25s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+    .f-row:hover { background: var(--bg-hover); }
+    .f-row.sel {
+      background: var(--bg-active);
+      border-color: rgba(129, 140, 248, 0.2);
+    }
+    .ftype {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .ftype.swift { background: linear-gradient(135deg, #f97316, #ea580c); box-shadow: 0 2px 8px rgba(249,115,22,0.3); }
+    .ftype.plist { background: linear-gradient(135deg, #64748b, #475569); }
+    .ftype.folder { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 2px 8px rgba(59,130,246,0.25); }
+    .ftype.objc { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+    .ftype svg { width: 14px; height: 14px; color: #fff; }
+    .finfo { flex: 1; min-width: 0; }
+    .finfo .fn { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .finfo .fp { font-size: 10px; color: var(--text-muted); margin-top: 1px; font-family: var(--mono); }
+    .status-chip {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 3px 7px;
+      border-radius: 5px;
+      flex-shrink: 0;
+    }
+    .status-chip.m { background: var(--amber-bg); color: var(--amber); }
+    .status-chip.a { background: var(--green-bg); color: var(--green); }
+    .status-chip.d { background: var(--red-bg); color: var(--red); }
+
+    /* Diff 列 */
+    .detail-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: rgba(10, 10, 16, 0.4);
+    }
+    .detail-head {
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-head .dh-title { flex: 1; font-size: 14px; font-weight: 600; font-family: var(--mono); }
+    .change-stats { display: flex; gap: 8px; }
+    .change-stats span {
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--mono);
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .change-stats .plus { background: var(--green-bg); color: var(--green); }
+    .change-stats .minus { background: var(--red-bg); color: var(--red); }
+
+    .diff-scroll {
+      flex: 1;
+      overflow: auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .diff-scroll::-webkit-scrollbar { width: 6px; }
+    .diff-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+
+    .dline {
+      display: flex;
+      min-height: 22px;
+      transition: background 0.15s;
+    }
+    .dline:hover { background: rgba(255,255,255,0.02); }
+    .dline .gutter {
+      width: 44px;
+      text-align: right;
+      padding-right: 12px;
+      color: var(--text-muted);
+      user-select: none;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      background: rgba(0,0,0,0.2);
+      font-size: 11px;
+      line-height: 22px;
+    }
+    .dline .code {
+      flex: 1;
+      padding: 0 16px;
+      white-space: pre;
+    }
+    .dline.add { background: rgba(74, 222, 128, 0.06); }
+    .dline.add .code { color: #86efac; }
+    .dline.add .gutter { color: rgba(74, 222, 128, 0.5); background: rgba(74, 222, 128, 0.04); }
+    .dline.del { background: rgba(248, 113, 113, 0.06); }
+    .dline.del .code { color: #fca5a5; }
+    .dline.del .gutter { color: rgba(248, 113, 113, 0.5); background: rgba(248, 113, 113, 0.04); }
+    .dline.ctx .code { color: #a1a1aa; }
+    .dline.hl .code .kw { color: #c084fc; }
+    .dline.hl .code .str { color: #fbbf24; }
+    .dline.hl .code .fn { color: #67e8f9; }
+
+    /* 底部操作栏 */
+    .action-bar {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 8px;
+      border-radius: 16px;
+      background: rgba(24, 24, 34, 0.92);
+      backdrop-filter: blur(24px) saturate(1.4);
+      border: 1px solid var(--border-bright);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset;
+      z-index: 10;
+      animation: slideUp 0.5s 0.3s ease both;
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(16px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+    .action-bar .summary {
+      padding: 0 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      border-right: 1px solid var(--border);
+      margin-right: 4px;
+      white-space: nowrap;
+    }
+    .action-bar .summary b { color: var(--amber); font-weight: 600; }
+    .act-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 11px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: var(--transition);
+      color: var(--text-secondary);
+      background: transparent;
+    }
+    .act-btn:hover { background: var(--bg-hover); color: var(--text); }
+    .act-btn.primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      box-shadow: 0 4px 16px var(--accent-glow);
+      padding: 10px 24px;
+    }
+    .act-btn.primary:hover {
+      box-shadow: 0 6px 24px rgba(129, 140, 248, 0.5);
+      transform: translateY(-1px);
+    }
+
+    /* 提交 Sheet */
+    .sheet-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(4px);
+      z-index: 30;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+    .sheet {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(20, 20, 30, 0.96);
+      backdrop-filter: blur(24px);
+      border-radius: 20px 20px 0 0;
+      border-top: 1px solid var(--border-bright);
+      padding: 12px 20px 24px;
+      z-index: 40;
+      transform: translateY(100%);
+      transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .sheet.open { transform: translateY(0); }
+    .sheet-handle {
+      width: 36px; height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+    .sheet h3 { font-size: 17px; font-weight: 700; margin-bottom: 14px; letter-spacing: -0.02em; }
+    .sheet-files { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; max-height: 140px; overflow-y: auto; }
+    .sheet-file {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .sheet-file input { accent-color: var(--accent); width: 16px; height: 16px; }
+    .sheet textarea {
+      width: 100%;
+      min-height: 80px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 12px;
+    }
+    .sheet textarea:focus { border-color: rgba(129, 140, 248, 0.5); box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.12); }
+    .sheet-submit {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: var(--font);
+      cursor: pointer;
+      box-shadow: 0 4px 20px var(--accent-glow);
+      transition: var(--transition);
+    }
+    .sheet-submit:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(129,140,248,0.45); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px) scale(0.95);
+      padding: 12px 22px;
+      border-radius: 12px;
+      background: rgba(24, 24, 34, 0.95);
+      border: 1px solid var(--border-bright);
+      backdrop-filter: blur(16px);
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      animation: fadeUp 0.6s 0.4s ease both;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="ambient">
+    <div class="orb o1"></div>
+    <div class="orb o2"></div>
+    <div class="orb o3"></div>
+    <div class="noise"></div>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <div class="badge">Premium · 精致版</div>
+      <h1>看着就要「哇」的那种</h1>
+      <p>深色质感 · 微光动效 · 精致图标 · 丝滑交互。点文件、点提交试试。</p>
+    </div>
+
+    <div class="device">
+      <div class="screen">
+        <div class="topbar">
+          <div class="logo-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"><path d="M6 3h12l4 6-10 13L2 9z"/></svg>
+          </div>
+          <div class="project">
+            <h2>mobile-app</h2>
+            <p>svn.company.com/trunk</p>
+          </div>
+          <div class="rev-pill"><span class="dot"></span> r1284</div>
+          <button class="icon-btn" title="设置">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </button>
+        </div>
+
+        <div class="main">
+          <div class="sidebar">
+            <div class="nav-label">工作副本</div>
+            <div class="nav-item active">
+              <div class="ni">📦</div>
+              <span class="nt">mobile-app</span>
+              <span class="nc">5</span>
+            </div>
+            <div class="nav-item">
+              <div class="ni">📦</div>
+              <span class="nt">backend-api</span>
+            </div>
+            <div class="nav-label">浏览</div>
+            <div class="nav-item"><div class="ni">📋</div><span class="nt">变更</span></div>
+            <div class="nav-item"><div class="ni">🕐</div><span class="nt">历史</span></div>
+          </div>
+
+          <div class="files-col">
+            <div class="files-head">
+              <span>components</span>
+              <div class="seg-control">
+                <button class="on" data-f="all">全部</button>
+                <button data-f="changed">变更</button>
+              </div>
+            </div>
+            <div class="file-scroll" id="files"></div>
+          </div>
+
+          <div class="detail-col">
+            <div class="detail-head">
+              <span class="dh-title" id="dTitle">LoginView.swift</span>
+              <div class="change-stats" id="dStats">
+                <span class="plus">+2</span>
+                <span class="minus">−1</span>
+              </div>
+            </div>
+            <div class="diff-scroll" id="diff"></div>
+          </div>
+
+          <div class="action-bar">
+            <span class="summary"><b>5</b> 处变更</span>
+            <button class="act-btn" id="btnUp">更新</button>
+            <button class="act-btn primary" id="btnCommit">提交变更</button>
+          </div>
+        </div>
+
+        <div class="sheet-backdrop" id="backdrop"></div>
+        <div class="sheet" id="sheet">
+          <div class="sheet-handle"></div>
+          <h3>提交变更</h3>
+          <div class="sheet-files" id="sheetFiles"></div>
+          <textarea id="msg" placeholder="描述这次提交…">feat: 更新登录页文案与样式</textarea>
+          <button class="sheet-submit" id="btnSubmit">提交到 r1285</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="footer">精致版 = 深色环境光 + 渐变高亮 + 微动效 + 底部 Sheet 提交。<br>如果喜欢这个方向，回我「精致版」或说说要更亮/更暗。</p>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const icon = {
+      swift: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.622 10.395c-.329-2.097-2.181-3.702-4.404-3.702-1.508 0-2.836.755-3.636 1.908l-1.582-2.714C10.822 4.704 12.296 4 13.918 4c3.866 0 7.022 3.093 7.022 6.907 0 .907-.176 1.776-.495 2.571l2.177 1.245v2.277h-2.177l-2.923-1.674zM4 18.093V8.814h2.177v9.279H4z"/></svg>',
+      folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>',
+      plist: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>',
+      objc: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>',
+    };
+
+    const files = [
+      { name: 'views', ext: 'folder', path: 'src/components/', changed: false, diff: null },
+      { name: 'LoginView.swift', ext: 'swift', path: 'src/components/', status: 'm', plus: 2, minus: 1, changed: true,
+        diff: [
+          { t:'ctx', n:'40', c:'<span class="kw">struct</span> <span class="fn">LoginView</span>: View {' },
+          { t:'ctx', n:'41', c:'    <span class="kw">var</span> body: <span class="kw">some</span> View {' },
+          { t:'del', n:'42', c:'        Text(<span class="str">"登录"</span>)' },
+          { t:'add', n:'42', c:'        Text(<span class="str">"欢迎回来"</span>)' },
+          { t:'add', n:'43', c:'            .font(.title2.bold())' },
+          { t:'ctx', n:'44', c:'        Button(<span class="str">"Sign In"</span>) { ... }' },
+        ]},
+      { name: 'AuthService.swift', ext: 'swift', path: 'src/services/', status: 'a', plus: 48, minus: 0, changed: true,
+        diff: [
+          { t:'add', n:'1', c:'<span class="kw">import</span> Foundation' },
+          { t:'add', n:'2', c:'<span class="kw">class</span> <span class="fn">AuthService</span> { ... }' },
+        ]},
+      { name: 'AppConfig.plist', ext: 'plist', path: '/', status: 'm', plus: 1, minus: 1, changed: true,
+        diff: [
+          { t:'del', n:'8', c:'    &lt;string&gt;dev&lt;/string&gt;' },
+          { t:'add', n:'8', c:'    &lt;string&gt;prod&lt;/string&gt;' },
+        ]},
+      { name: 'LegacyAuth.m', ext: 'objc', path: 'src/legacy/', status: 'd', plus: 0, minus: 120, changed: true,
+        diff: [{ t:'del', n:'1', c:'// removed legacy module' }]},
+    ];
+
+    let sel = 1, filter = 'all';
+
+    function renderFiles() {
+      const list = filter === 'changed' ? files.filter(f => f.changed) : files;
+      document.getElementById('files').innerHTML = list.map(f => {
+        const i = files.indexOf(f);
+        const chip = f.status ? `<span class="status-chip ${f.status}">${f.status.toUpperCase()}</span>` : '';
+        return `<div class="f-row ${i===sel?'sel':''}" data-i="${i}">
+          <div class="ftype ${f.ext}">${icon[f.ext]||''}</div>
+          <div class="finfo"><div class="fn">${f.name}</div><div class="fp">${f.path}</div></div>
+          ${chip}
+        </div>`;
+      }).join('');
+      document.querySelectorAll('.f-row').forEach(el => {
+        el.addEventListener('click', () => { sel = +el.dataset.i; renderFiles(); renderDiff(); });
+      });
+    }
+
+    function renderDiff() {
+      const f = files[sel];
+      document.getElementById('dTitle').textContent = f.name;
+      const stats = document.getElementById('dStats');
+      if (f.plus != null) {
+        stats.innerHTML = `<span class="plus">+${f.plus}</span><span class="minus">−${f.minus}</span>`;
+        stats.style.display = 'flex';
+      } else { stats.style.display = 'none'; }
+      const area = document.getElementById('diff');
+      if (!f.diff) {
+        area.innerHTML = '<div style="display:grid;place-items:center;height:100%;color:var(--text-muted);font-family:var(--font);font-size:14px;text-align:center;padding:40px"><div style="font-size:40px;margin-bottom:12px;opacity:.3">✦</div>选择文件查看精致 Diff</div>';
+        return;
+      }
+      area.innerHTML = f.diff.map(d =>
+        `<div class="dline ${d.t} hl"><span class="gutter">${d.n}</span><span class="code">${d.c}</span></div>`
+      ).join('');
+    }
+
+    function openSheet() {
+      document.getElementById('sheetFiles').innerHTML = files.filter(f=>f.changed).map(f =>
+        `<div class="sheet-file"><input type="checkbox" checked><span class="status-chip ${f.status}">${f.status.toUpperCase()}</span>${f.name}</div>`
+      ).join('');
+      document.getElementById('backdrop').classList.add('open');
+      document.getElementById('sheet').classList.add('open');
+    }
+    function closeSheet() {
+      document.getElementById('backdrop').classList.remove('open');
+      document.getElementById('sheet').classList.remove('open');
+    }
+
+    function toast(m) {
+      const t = document.getElementById('toast');
+      t.textContent = m;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2400);
+    }
+
+    document.querySelectorAll('.seg-control button').forEach(b => {
+      b.addEventListener('click', () => {
+        filter = b.dataset.f;
+        document.querySelectorAll('.seg-control button').forEach(x => x.classList.toggle('on', x===b));
+        renderFiles();
+      });
+    });
+    document.getElementById('btnCommit').addEventListener('click', openSheet);
+    document.getElementById('backdrop').addEventListener('click', closeSheet);
+    document.getElementById('btnSubmit').addEventListener('click', () => { closeSheet(); toast('✦ 已提交到 r1285'); });
+    document.getElementById('btnUp').addEventListener('click', () => toast('✦ 已同步到最新版本'));
+
+    renderFiles();
+    renderDiff();
+  </script>
+</body>
+</html>

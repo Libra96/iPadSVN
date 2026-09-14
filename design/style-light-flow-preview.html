@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iPadSVN — 浅色 · 单列变更流</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f6fb;
+      --bg-soft: #eef1f8;
+      --surface: #ffffff;
+      --text: #1a1d28;
+      --text-2: #5c6370;
+      --text-3: #939aa8;
+      --border: rgba(0, 0, 0, 0.06);
+      --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.06);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.04);
+      --accent: #5b6cf8;
+      --accent-soft: rgba(91, 108, 248, 0.1);
+      --green: #16a34a;
+      --green-bg: #ecfdf3;
+      --amber: #d97706;
+      --amber-bg: #fffbeb;
+      --red: #dc2626;
+      --red-bg: #fef2f2;
+      --radius: 16px;
+      --font: "DM Sans", -apple-system, sans-serif;
+      --mono: "JetBrains Mono", monospace;
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    /* 浅色环境 */
+    .bg-glow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(91,108,248,.12), transparent),
+        radial-gradient(ellipse 60% 40% at 90% 100%, rgba(99,179,237,.1), transparent);
+    }
+
+    .wrap { position: relative; max-width: 1180px; margin: 0 auto; padding: 24px 20px 48px; }
+
+    .page-title {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .page-title h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .page-title p { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+    .layout-tag {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    /* 方向 + 布局切换 */
+    .control-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .control-row button {
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-2);
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,.03);
+      transition: 0.2s var(--ease);
+      font-family: var(--font);
+    }
+    .control-row button.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 4px 12px rgba(91,108,248,.3);
+    }
+    .size-label {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-3);
+      font-family: var(--mono);
+      margin-bottom: 14px;
+    }
+    .size-label b { color: var(--accent); font-weight: 600; }
+
+    .layout-switch {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .layout-switch button {
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-2);
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,.03);
+      transition: 0.2s var(--ease);
+      font-family: var(--font);
+    }
+    .layout-switch button.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 4px 12px rgba(91,108,248,.3);
+    }
+
+    /* iPad 框 — 真实比例 */
+    .device-wrap { display: flex; justify-content: center; }
+    .device {
+      background: #e8ebf2;
+      border-radius: 28px;
+      padding: 14px;
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      transition: max-width 0.4s var(--ease), aspect-ratio 0.4s var(--ease);
+    }
+    /* iPad Pro 11" 横屏 1194×834 pt */
+    .device.landscape {
+      max-width: 1100px;
+      aspect-ratio: 1194 / 834;
+    }
+    /* iPad 竖屏 834×1194 pt */
+    .device.portrait {
+      max-width: 480px;
+      aspect-ratio: 834 / 1194;
+    }
+    .screen {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ===== 共用顶栏 ===== */
+    .header {
+      padding: 16px 20px 12px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .app-icon {
+      width: 40px; height: 40px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, #5b6cf8, #8b5cf6);
+      display: grid; place-items: center;
+      box-shadow: 0 4px 12px rgba(91,108,248,.25);
+    }
+    .app-icon svg { width: 22px; height: 22px; }
+    .header-info { flex: 1; }
+    .header-info h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+    .header-info p { font-size: 12px; color: var(--text-3); margin-top: 2px; font-family: var(--mono); }
+    .sync-badge {
+      display: flex; align-items: center; gap: 5px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      background: var(--green-bg);
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .sync-badge::before {
+      content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+    }
+
+    /* 统计条 */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .stat-card {
+      background: var(--bg-soft);
+      border-radius: 12px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .stat-card .num { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+    .stat-card .lbl { font-size: 10px; color: var(--text-3); margin-top: 2px; font-weight: 500; }
+    .stat-card.highlight { background: var(--accent-soft); }
+    .stat-card.highlight .num { color: var(--accent); }
+
+    /* ===== 布局 A：变更流 ===== */
+    .layout-a { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .layout-a.hidden { display: none; }
+
+    .a-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+    .feed {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px 90px;
+      min-width: 0;
+      transition: width 0.35s var(--ease);
+    }
+
+    /* iPad 横屏：选中后左侧列表 + 右侧大 Diff（两栏，不是三栏） */
+    .detail-pane {
+      display: none;
+      width: 52%;
+      flex-direction: column;
+      border-left: 1px solid var(--border);
+      background: var(--surface);
+      min-width: 0;
+    }
+    .detail-pane.show { display: flex; }
+    .device.landscape .layout-a.has-detail .feed { width: 48%; flex: none; }
+    .device.landscape .layout-a.has-detail .change-card.open .card-diff { max-height: 0 !important; border: none; }
+    .device.landscape .layout-a.has-detail .change-card .chevron { display: none; }
+
+    .detail-pane-head {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .detail-pane-head h3 {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: var(--mono);
+    }
+    .detail-pane-body {
+      flex: 1;
+      overflow: auto;
+      padding: 16px 18px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+      background: #fafbfc;
+    }
+    .detail-pane-body .add { color: var(--green); }
+    .detail-pane-body .del { color: var(--red); }
+    .detail-pane-body .ctx { color: var(--text-3); }
+    .feed-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+      margin-bottom: 10px;
+      padding-left: 4px;
+    }
+
+    .change-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      transition: box-shadow 0.25s var(--ease), transform 0.25s var(--ease);
+    }
+    .change-card:hover { box-shadow: var(--shadow-lg); }
+    .change-card.open { border-color: rgba(91,108,248,.25); box-shadow: 0 4px 24px rgba(91,108,248,.12); }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .file-badge {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .file-badge.swift { background: linear-gradient(135deg, #fb923c, #ea580c); color: #fff; }
+    .file-badge.plist { background: linear-gradient(135deg, #94a3b8, #64748b); color: #fff; }
+    .file-badge.objc { background: linear-gradient(135deg, #a78bfa, #7c3aed); color: #fff; }
+    .file-badge svg { width: 16px; height: 16px; }
+
+    .card-meta { flex: 1; min-width: 0; }
+    .card-meta .name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-meta .path { font-size: 11px; color: var(--text-3); font-family: var(--mono); margin-top: 2px; }
+
+    .pill {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 4px 9px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .pill.m { background: var(--amber-bg); color: var(--amber); }
+    .pill.a { background: var(--green-bg); color: var(--green); }
+    .pill.d { background: var(--red-bg); color: var(--red); }
+
+    .chevron {
+      width: 20px; height: 20px;
+      color: var(--text-3);
+      transition: transform 0.3s var(--ease);
+      flex-shrink: 0;
+    }
+    .change-card.open .chevron { transform: rotate(180deg); color: var(--accent); }
+
+    .card-diff {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s var(--ease);
+      border-top: 1px solid transparent;
+    }
+    .change-card.open .card-diff {
+      max-height: 220px;
+      border-top-color: var(--border);
+    }
+    /* 竖屏：卡片内展开 Diff */
+    .device.portrait .change-card.open .card-diff { max-height: 280px; }
+    .diff-inner {
+      padding: 12px 16px 14px;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.65;
+      background: #fafbfc;
+    }
+    .diff-inner .add { color: var(--green); }
+    .diff-inner .del { color: var(--red); }
+    .diff-inner .ctx { color: var(--text-3); }
+
+    /* ===== 布局 B：全屏栈（列表 → 点进全屏 Diff） ===== */
+    .layout-b { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    .layout-b.hidden { display: none; }
+
+    .simple-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px 90px;
+    }
+    /* 横屏方案 B：列表两列网格 */
+    .device.landscape .simple-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      align-content: start;
+    }
+    .device.landscape .list-row { margin-bottom: 0; }
+
+    .list-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border-radius: 14px;
+      margin-bottom: 8px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: transform 0.15s var(--ease), box-shadow 0.15s;
+    }
+    .list-row:active { transform: scale(0.985); }
+    .list-row .preview-stat {
+      margin-left: auto;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-3);
+    }
+
+    /* 全屏 Diff 层 */
+    .fullscreen-diff {
+      position: absolute;
+      inset: 0;
+      background: var(--surface);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.38s var(--ease);
+    }
+    .fullscreen-diff.show { transform: translateX(0); }
+
+    .fs-nav {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .fs-back {
+      display: flex; align-items: center; gap: 4px;
+      background: none; border: none;
+      color: var(--accent);
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: var(--font);
+    }
+    .fs-title { flex: 1; font-size: 15px; font-weight: 600; font-family: var(--mono); text-align: center; }
+    .fs-body {
+      flex: 1;
+      overflow: auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+      padding: 16px 0;
+    }
+    .fs-line { display: flex; padding: 1px 0; }
+    .fs-line .g { width: 44px; text-align: right; padding-right: 12px; color: var(--text-3); font-size: 11px; flex-shrink: 0; }
+    .fs-line .c { flex: 1; padding-right: 16px; }
+    .fs-line.add { background: var(--green-bg); }
+    .fs-line.add .c { color: var(--green); }
+    .fs-line.del { background: var(--red-bg); }
+    .fs-line.del .c { color: var(--red); }
+
+    /* 底部操作 */
+    .bottom-actions {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 12px 16px 20px;
+      background: linear-gradient(to top, var(--bg) 70%, transparent);
+      display: flex;
+      gap: 10px;
+      z-index: 10;
+    }
+    .bottom-actions button {
+      flex: 1;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: 0.2s var(--ease);
+    }
+    .btn-ghost {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border) !important;
+    }
+    .btn-ghost:hover { background: var(--bg-soft); }
+    .btn-main {
+      background: linear-gradient(135deg, #5b6cf8, #7c3aed);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(91,108,248,.35);
+      flex: 1.4;
+    }
+    .btn-main:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(91,108,248,.4); }
+
+    /* 提交 Sheet */
+    .sheet-bg {
+      position: absolute; inset: 0;
+      background: rgba(26,29,40,.3);
+      backdrop-filter: blur(6px);
+      z-index: 30;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .sheet-bg.open { opacity: 1; pointer-events: auto; }
+    .sheet {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      padding: 12px 20px 28px;
+      z-index: 40;
+      transform: translateY(100%);
+      transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+      box-shadow: 0 -8px 40px rgba(0,0,0,.1);
+    }
+    .sheet.open { transform: translateY(0); }
+    .sheet-handle { width: 36px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 18px; }
+    .sheet h3 { font-size: 18px; font-weight: 700; margin-bottom: 14px; }
+    .sheet-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+    }
+    .sheet-item:last-of-type { border-bottom: none; margin-bottom: 12px; }
+    .sheet textarea {
+      width: 100%; min-height: 88px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-family: var(--font);
+      font-size: 15px;
+      resize: none;
+      outline: none;
+      margin-bottom: 12px;
+      background: var(--bg-soft);
+    }
+    .sheet textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .sheet .btn-main { width: 100%; flex: none; }
+
+    .toast {
+      position: fixed;
+      bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      padding: 12px 22px;
+      background: var(--text);
+      color: #fff;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0;
+      transition: 0.35s cubic-bezier(0.34,1.56,.64,1);
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .note {
+      text-align: center;
+      margin-top: 18px;
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.7;
+    }
+    .note strong { color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <div class="wrap">
+    <div class="page-title">
+      <h1>浅色 · 不用三栏</h1>
+      <p>按真实 iPad 尺寸预览 · 横屏 1194×834 · 竖屏 834×1194</p>
+      <span class="layout-tag">真 iPad 比例 · 非三栏</span>
+    </div>
+
+    <div class="control-row" id="orientPicker">
+      <button class="active" data-orient="landscape">iPad 横屏</button>
+      <button data-orient="portrait">iPad 竖屏</button>
+    </div>
+    <div class="size-label" id="sizeLabel"><b>1194 × 834 pt</b> · iPad Pro 11" 横屏（常用）</div>
+
+    <div class="layout-switch">
+      <button class="active" data-layout="a">方案 1 · 变更流</button>
+      <button data-layout="b">方案 2 · 全屏栈</button>
+    </div>
+
+    <div class="device-wrap">
+    <div class="device landscape" id="device">
+      <div class="screen" id="screen">
+        <!-- 共用顶栏 -->
+        <div class="header">
+          <div class="header-top">
+            <div class="app-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"><path d="M6 3h12l4 6-10 13L2 9z"/></svg>
+            </div>
+            <div class="header-info">
+              <h2>mobile-app</h2>
+              <p>trunk · r1284</p>
+            </div>
+            <div class="sync-badge">已同步</div>
+          </div>
+          <div class="stats-row">
+            <div class="stat-card highlight"><div class="num">5</div><div class="lbl">待提交</div></div>
+            <div class="stat-card"><div class="num">2</div><div class="lbl">修改</div></div>
+            <div class="stat-card"><div class="num">1</div><div class="lbl">新增</div></div>
+            <div class="stat-card"><div class="num">1</div><div class="lbl">删除</div></div>
+          </div>
+        </div>
+
+        <!-- 方案 A：变更流 -->
+        <div class="layout-a" id="layoutA">
+          <div class="a-body">
+            <div class="feed">
+              <div class="feed-label" id="feedLabel">待提交的变更 · 横屏点选后右侧看 Diff</div>
+              <div id="cards"></div>
+            </div>
+            <div class="detail-pane" id="detailPane">
+              <div class="detail-pane-head">
+                <h3 id="paneTitle">LoginView.swift</h3>
+                <span class="pill m" id="panePill">M</span>
+              </div>
+              <div class="detail-pane-body" id="paneBody"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 方案 B：全屏栈 -->
+        <div class="layout-b hidden" id="layoutB">
+          <div class="simple-list" id="simpleList"></div>
+          <div class="fullscreen-diff" id="fsDiff">
+            <div class="fs-nav">
+              <button class="fs-back" id="fsBack">‹ 返回</button>
+              <span class="fs-title" id="fsTitle">LoginView.swift</span>
+              <span style="width:60px"></span>
+            </div>
+            <div class="fs-body" id="fsBody"></div>
+          </div>
+        </div>
+
+        <!-- 底部操作 -->
+        <div class="bottom-actions">
+          <button class="btn-ghost" id="btnUpdate">更新代码</button>
+          <button class="btn-main" id="btnCommit">提交变更</button>
+        </div>
+
+        <!-- Sheet -->
+        <div class="sheet-bg" id="sheetBg"></div>
+        <div class="sheet" id="sheet">
+          <div class="sheet-handle"></div>
+          <h3>提交到 r1285</h3>
+          <div id="sheetItems"></div>
+          <textarea id="commitMsg">feat: 更新登录页文案与样式</textarea>
+          <button class="btn-main" id="btnSubmit">确认提交</button>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <p class="note">
+      <strong>横屏</strong>：方案 1 点文件 → 左列表 + 右大 Diff（两栏，不是三栏）。<br>
+      <strong>竖屏</strong>：卡片内展开 Diff，单列滚动，和 iPhone 逻辑一致但按 iPad 宽度排版。
+    </p>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const swiftIcon = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.622 10.395c-.329-2.097-2.181-3.702-4.404-3.702-1.508 0-2.836.755-3.636 1.908l-1.582-2.714C10.822 4.704 12.296 4 13.918 4c3.866 0 7.022 3.093 7.022 6.907 0 .907-.176 1.776-.495 2.571l2.177 1.245v2.277h-2.177l-2.923-1.674z"/></svg>';
+    const plistIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>';
+
+    const changes = [
+      { name: 'LoginView.swift', path: 'src/components/', type: 'swift', status: 'm', stat: '+2 −1',
+        diff: [['ctx','  var body: some View {'],['del','- Text("登录")'],['add','+ Text("欢迎回来")'],['add','+     .font(.title2.bold())']] },
+      { name: 'AuthService.swift', path: 'src/services/', type: 'swift', status: 'a', stat: '+48',
+        diff: [['add','+ import Foundation'],['add','+ class AuthService { ... }']] },
+      { name: 'AppConfig.plist', path: '/', type: 'plist', status: 'm', stat: '+1 −1',
+        diff: [['del','- <string>dev</string>'],['add','+ <string>prod</string>']] },
+      { name: 'LegacyAuth.m', path: 'src/legacy/', type: 'objc', status: 'd', stat: '−120',
+        diff: [['del','- // removed legacy module']] },
+    ];
+
+    const chevron = '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
+
+    let selectedIdx = 0;
+    const isLandscape = () => document.getElementById('device').classList.contains('landscape');
+
+    function renderDiffHtml(diff) {
+      return diff.map(([t,l]) => `<div class="${t}">${l.replace(/</g,'&lt;')}</div>`).join('');
+    }
+
+    function showDetail(i) {
+      const c = changes[i];
+      selectedIdx = i;
+      document.getElementById('paneTitle').textContent = c.name;
+      const pill = document.getElementById('panePill');
+      pill.className = 'pill ' + c.status;
+      pill.textContent = c.status.toUpperCase();
+      document.getElementById('paneBody').innerHTML = renderDiffHtml(c.diff);
+      document.getElementById('detailPane').classList.add('show');
+      document.getElementById('layoutA').classList.add('has-detail');
+    }
+
+    function renderCards() {
+      document.getElementById('cards').innerHTML = changes.map((c, i) => `
+        <div class="change-card ${i===selectedIdx?'open':''}" data-i="${i}">
+          <div class="card-head">
+            <div class="file-badge ${c.type}">${c.type==='swift'?swiftIcon:plistIcon}</div>
+            <div class="card-meta">
+              <div class="name">${c.name}</div>
+              <div class="path">${c.path}</div>
+            </div>
+            <span class="pill ${c.status}">${c.status.toUpperCase()}</span>
+            ${chevron}
+          </div>
+          <div class="card-diff">
+            <div class="diff-inner">${renderDiffHtml(c.diff)}</div>
+          </div>
+        </div>
+      `).join('');
+      document.querySelectorAll('.change-card').forEach(card => {
+        card.querySelector('.card-head').addEventListener('click', () => {
+          const i = +card.dataset.i;
+          const wasOpen = card.classList.contains('open');
+          document.querySelectorAll('.change-card').forEach(c => c.classList.remove('open'));
+          if (isLandscape()) {
+            showDetail(i);
+            card.classList.add('open');
+          } else {
+            if (!wasOpen) card.classList.add('open');
+            document.getElementById('detailPane').classList.remove('show');
+            document.getElementById('layoutA').classList.remove('has-detail');
+          }
+        });
+      });
+      if (isLandscape()) showDetail(selectedIdx);
+    }
+
+    function updateOrientUI() {
+      const land = isLandscape();
+      document.getElementById('sizeLabel').innerHTML = land
+        ? '<b>1194 × 834 pt</b> · iPad Pro 11" 横屏'
+        : '<b>834 × 1194 pt</b> · iPad 竖屏';
+      document.getElementById('feedLabel').textContent = land
+        ? '待提交的变更 · 点选后右侧看 Diff'
+        : '待提交的变更 · 点卡片展开 Diff';
+      if (land) {
+        showDetail(selectedIdx);
+        document.querySelectorAll('.change-card').forEach((c, i) => c.classList.toggle('open', i === selectedIdx));
+      } else {
+        document.getElementById('detailPane').classList.remove('show');
+        document.getElementById('layoutA').classList.remove('has-detail');
+      }
+    }
+
+    function renderSimpleList() {
+      document.getElementById('simpleList').innerHTML = changes.map((c, i) => `
+        <div class="list-row" data-i="${i}">
+          <div class="file-badge ${c.type}">${c.type==='swift'?swiftIcon:plistIcon}</div>
+          <div class="card-meta">
+            <div class="name">${c.name}</div>
+            <div class="path">${c.path}</div>
+          </div>
+          <span class="pill ${c.status}">${c.status.toUpperCase()}</span>
+          <span class="preview-stat">${c.stat}</span>
+        </div>
+      `).join('');
+      document.querySelectorAll('.list-row').forEach(row => {
+        row.addEventListener('click', () => openFs(+row.dataset.i));
+      });
+    }
+
+    function openFs(i) {
+      const c = changes[i];
+      document.getElementById('fsTitle').textContent = c.name;
+      document.getElementById('fsBody').innerHTML = c.diff.map(([t,l], idx) =>
+        `<div class="fs-line ${t==='add'?'add':t==='del'?'del':''}"><span class="g">${idx+1}</span><span class="c">${l.replace(/</g,'&lt;')}</span></div>`
+      ).join('');
+      document.getElementById('fsDiff').classList.add('show');
+    }
+
+    function toast(m) {
+      const t = document.getElementById('toast');
+      t.textContent = m;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    function openSheet() {
+      document.getElementById('sheetItems').innerHTML = changes.map(c =>
+        `<div class="sheet-item"><input type="checkbox" checked><span class="pill ${c.status}">${c.status.toUpperCase()}</span>${c.name}</div>`
+      ).join('');
+      document.getElementById('sheetBg').classList.add('open');
+      document.getElementById('sheet').classList.add('open');
+    }
+    function closeSheet() {
+      document.getElementById('sheetBg').classList.remove('open');
+      document.getElementById('sheet').classList.remove('open');
+    }
+
+    document.querySelectorAll('#orientPicker button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#orientPicker button').forEach(b => b.classList.toggle('active', b === btn));
+        const dev = document.getElementById('device');
+        dev.classList.toggle('landscape', btn.dataset.orient === 'landscape');
+        dev.classList.toggle('portrait', btn.dataset.orient === 'portrait');
+        updateOrientUI();
+      });
+    });
+
+    document.querySelectorAll('.layout-switch button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.layout-switch button').forEach(b => b.classList.toggle('active', b === btn));
+        const a = btn.dataset.layout === 'a';
+        document.getElementById('layoutA').classList.toggle('hidden', !a);
+        document.getElementById('layoutB').classList.toggle('hidden', a);
+      });
+    });
+
+    document.getElementById('fsBack').addEventListener('click', () => document.getElementById('fsDiff').classList.remove('show'));
+    document.getElementById('btnCommit').addEventListener('click', openSheet);
+    document.getElementById('sheetBg').addEventListener('click', closeSheet);
+    document.getElementById('btnSubmit').addEventListener('click', () => { closeSheet(); toast('✓ 已提交到 r1285'); });
+    document.getElementById('btnUpdate').addEventListener('click', () => toast('✓ 已更新到最新版本'));
+
+    renderCards();
+    renderSimpleList();
+    updateOrientUI();
+  </script>
+</body>
+</html>

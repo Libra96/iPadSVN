@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iPadSVN — J 风格预览（推荐混合方案）</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif;
+      background: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      color: #fff;
+    }
+
+    .intro {
+      max-width: 960px;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .intro h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .intro p { font-size: 13px; color: #888; line-height: 1.5; }
+    .intro .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .intro .tag {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: #222;
+      color: #aaa;
+    }
+    .intro .tag.hl { background: #007aff33; color: #5ac8fa; }
+
+    .page-switch {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .page-switch button {
+      padding: 8px 18px;
+      border-radius: 10px;
+      border: 1px solid #333;
+      background: #222;
+      color: #999;
+      font-size: 13px;
+      cursor: pointer;
+      transition: .2s;
+    }
+    .page-switch button.active {
+      background: #007aff;
+      border-color: #007aff;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* iPad 外壳 */
+    .device {
+      width: 100%;
+      max-width: 960px;
+      aspect-ratio: 4/3;
+      background: #1a1a1a;
+      border-radius: 24px;
+      padding: 12px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.6), inset 0 0 0 1px #333;
+    }
+    .screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+      background: #f2f2f7;
+      color: #000;
+    }
+
+    .page { display: none; width: 100%; height: 100%; flex-direction: column; }
+    .page.active { display: flex; }
+
+    /* ===== 状态栏 ===== */
+    .status-bar {
+      height: 28px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      background: #f2f2f7;
+      flex-shrink: 0;
+    }
+
+    /* ===== 浏览页 ===== */
+    .app-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* 第一栏：仓库 */
+    .col-repos {
+      width: 220px;
+      background: #f2f2f7;
+      border-right: .5px solid #c6c6c8;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .col-repos .head {
+      padding: 12px 16px 8px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+    }
+    .col-repos .section-label {
+      font-size: 12px;
+      color: #3c3c43;
+      opacity: .55;
+      padding: 12px 20px 6px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .repo-row {
+      margin: 0 12px 2px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .repo-row:hover { background: rgba(0,0,0,.04); }
+    .repo-row.active { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .repo-row .icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, #007aff, #5856d6);
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-size: 16px;
+    }
+    .repo-row .info { flex: 1; min-width: 0; }
+    .repo-row .name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .repo-row .sub { font-size: 12px; color: #8e8e93; margin-top: 1px; }
+    .repo-row .badge {
+      background: #ff9500;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 22px;
+      height: 22px;
+      border-radius: 11px;
+      display: grid; place-items: center;
+      padding: 0 6px;
+    }
+
+    /* 第二栏：文件 */
+    .col-files {
+      width: 260px;
+      background: #fff;
+      border-right: .5px solid #e5e5ea;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .col-files .nav {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: .5px solid #e5e5ea;
+      gap: 8px;
+    }
+    .col-files .nav .title { flex: 1; font-size: 17px; font-weight: 600; text-align: center; }
+    .col-files .nav .link { font-size: 17px; color: #007aff; background: none; border: none; cursor: pointer; }
+    .col-files .filter {
+      padding: 8px 12px;
+      display: flex;
+      gap: 6px;
+      border-bottom: .5px solid #f2f2f7;
+    }
+    .col-files .filter button {
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: none;
+      font-size: 13px;
+      font-weight: 500;
+      background: #f2f2f7;
+      color: #8e8e93;
+      cursor: pointer;
+      transition: .15s;
+    }
+    .col-files .filter button.on { background: #007aff; color: #fff; }
+    .file-list { flex: 1; overflow-y: auto; }
+    .file-item {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      border-bottom: .5px solid #f9f9f9;
+      transition: background .12s;
+    }
+    .file-item:hover { background: #fafafa; }
+    .file-item.selected { background: #e8f4fd; }
+    .file-item .st {
+      width: 20px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .file-item .st.m { color: #ff9500; }
+    .file-item .st.a { color: #34c759; }
+    .file-item .st.d { color: #ff3b30; }
+    .file-item .st.none { color: #c7c7cc; }
+    .file-item .fname {
+      flex: 1;
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 第三栏：Diff */
+    .col-detail {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #fafafa;
+      min-width: 0;
+    }
+    .col-detail .nav {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: .5px solid #e5e5ea;
+      background: #fff;
+      gap: 8px;
+    }
+    .col-detail .nav .fname { flex: 1; font-size: 15px; font-weight: 600; }
+    .col-detail .nav .stat { font-size: 13px; color: #8e8e93; }
+    .col-detail .nav .seg {
+      display: flex;
+      background: #e5e5ea;
+      border-radius: 8px;
+      padding: 2px;
+      font-size: 12px;
+    }
+    .col-detail .nav .seg span {
+      padding: 4px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #8e8e93;
+    }
+    .col-detail .nav .seg span.on {
+      background: #fff;
+      color: #000;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      font-weight: 600;
+    }
+    .diff-area {
+      flex: 1;
+      overflow: auto;
+      font-family: "SF Mono", ui-monospace, monospace;
+      font-size: 12px;
+      line-height: 1.65;
+      padding: 0;
+    }
+    .diff-line {
+      display: flex;
+      padding: 1px 0;
+    }
+    .diff-line .ln {
+      width: 40px;
+      text-align: right;
+      padding-right: 12px;
+      color: #aeaeb2;
+      user-select: none;
+      flex-shrink: 0;
+      background: #f2f2f7;
+    }
+    .diff-line .code { flex: 1; padding: 0 12px; }
+    .diff-line.add .code { background: #e6ffec; color: #1a7f37; }
+    .diff-line.del .code { background: #ffebe9; color: #cf222e; }
+    .diff-line.ctx .code { color: #3c3c43; }
+    .empty-diff {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      color: #8e8e93;
+      font-size: 15px;
+      text-align: center;
+      padding: 40px;
+    }
+    .empty-diff .ico { font-size: 48px; margin-bottom: 12px; opacity: .4; }
+
+    /* 浮动工具栏 */
+    .float-toolbar {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,.88);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-radius: 14px;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.08);
+      z-index: 20;
+    }
+    .float-toolbar button {
+      padding: 10px 22px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      background: transparent;
+      color: #007aff;
+      cursor: pointer;
+      transition: .15s;
+      white-space: nowrap;
+    }
+    .float-toolbar button:hover { background: rgba(0,122,255,.08); }
+    .float-toolbar button.primary {
+      background: #007aff;
+      color: #fff;
+    }
+    .float-toolbar button.primary:hover { background: #0066d6; }
+    .float-toolbar .sep {
+      width: 1px;
+      height: 24px;
+      background: #e5e5ea;
+    }
+    .float-toolbar .count {
+      font-size: 13px;
+      color: #8e8e93;
+      padding: 0 8px 0 12px;
+      font-weight: 500;
+    }
+
+    /* ===== 提交页 ===== */
+    .commit-page { background: #f2f2f7; }
+    .commit-nav {
+      height: 44px;
+      background: #f2f2f7;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: .5px solid #c6c6c8;
+    }
+    .commit-nav button { background: none; border: none; font-size: 17px; color: #007aff; cursor: pointer; }
+    .commit-nav .title { flex: 1; text-align: center; font-size: 17px; font-weight: 600; }
+    .commit-nav .submit { font-weight: 600; }
+    .commit-body { flex: 1; overflow-y: auto; padding: 16px; }
+    .commit-group {
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .commit-row {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: .5px solid #e5e5ea;
+      cursor: pointer;
+    }
+    .commit-row:last-child { border-bottom: none; }
+    .commit-row input { width: 22px; height: 22px; accent-color: #007aff; cursor: pointer; }
+    .commit-row .st { font-size: 13px; font-weight: 700; width: 18px; text-align: center; }
+    .commit-row .st.m { color: #ff9500; }
+    .commit-row .st.a { color: #34c759; }
+    .commit-row .st.d { color: #ff3b30; }
+    .commit-row .name { flex: 1; font-size: 17px; }
+    .commit-msg {
+      background: #fff;
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 16px;
+    }
+    .commit-msg textarea {
+      width: 100%;
+      min-height: 120px;
+      border: none;
+      padding: 12px 14px;
+      font-size: 17px;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      border-radius: 8px;
+    }
+    .commit-msg textarea::placeholder { color: #c7c7cc; }
+    .commit-hint {
+      text-align: center;
+      font-size: 13px;
+      color: #8e8e93;
+      padding: 8px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: rgba(0,0,0,.82);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 500;
+      opacity: 0;
+      transition: all .35s cubic-bezier(.34,1.56,.64,1);
+      z-index: 100;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    .footer-note {
+      max-width: 960px;
+      width: 100%;
+      margin-top: 16px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.6;
+    }
+    .footer-note strong { color: #aaa; }
+  </style>
+</head>
+<body>
+
+  <div class="intro">
+    <h1>J · 推荐混合方案</h1>
+    <p>A 的三栏结构 + H 的 Split View + I 的浮动工具栏，纯 iOS 系统风格。可以点击文件、切换筛选、体验提交页。</p>
+    <div class="tags">
+      <span class="tag hl">NavigationSplitView 三栏</span>
+      <span class="tag hl">#007AFF 系统蓝</span>
+      <span class="tag">Grouped List 提交页</span>
+      <span class="tag">浮动工具栏</span>
+      <span class="tag">SF Mono Diff</span>
+    </div>
+  </div>
+
+  <div class="page-switch">
+    <button class="active" data-page="browse">文件浏览</button>
+    <button data-page="commit">提交变更</button>
+  </div>
+
+  <div class="device">
+    <div class="screen">
+
+      <!-- 浏览页 -->
+      <div class="page active" id="page-browse">
+        <div class="status-bar"><span>9:41</span><span>📶 WiFi 🔋</span></div>
+        <div class="app-body">
+          <!-- 栏1 仓库 -->
+          <div class="col-repos">
+            <div class="head">SVN</div>
+            <div class="section-label">工作副本</div>
+            <div class="repo-row active" data-repo="mobile">
+              <div class="icon">📦</div>
+              <div class="info">
+                <div class="name">mobile-app</div>
+                <div class="sub">r1284 · 2分钟前</div>
+              </div>
+              <span class="badge">5</span>
+            </div>
+            <div class="repo-row" data-repo="backend">
+              <div class="icon" style="background:linear-gradient(135deg,#34c759,#30b0c7)">📦</div>
+              <div class="info">
+                <div class="name">backend-api</div>
+                <div class="sub">r892 · 最新</div>
+              </div>
+            </div>
+            <div class="section-label">快捷</div>
+            <div class="repo-row">
+              <div class="icon" style="background:#ff9500">📋</div>
+              <div class="info"><div class="name">变更列表</div><div class="sub">5 个文件</div></div>
+            </div>
+            <div class="repo-row">
+              <div class="icon" style="background:#8e8e93">🕐</div>
+              <div class="info"><div class="name">提交历史</div></div>
+            </div>
+          </div>
+
+          <!-- 栏2 文件 -->
+          <div class="col-files">
+            <div class="nav">
+              <button class="link" style="visibility:hidden">‹</button>
+              <span class="title">components</span>
+              <button class="link" id="btnFilter">筛选</button>
+            </div>
+            <div class="filter">
+              <button class="on" data-filter="all">全部</button>
+              <button data-filter="changed">变更 (5)</button>
+            </div>
+            <div class="file-list" id="fileList"></div>
+          </div>
+
+          <!-- 栏3 Diff -->
+          <div class="col-detail">
+            <div class="nav">
+              <span class="fname" id="detailTitle">LoginView.swift</span>
+              <span class="stat" id="detailStat">+2 −1</span>
+              <div class="seg">
+                <span>原文</span>
+                <span class="on">Diff</span>
+              </div>
+            </div>
+            <div class="diff-area" id="diffArea"></div>
+          </div>
+
+          <!-- 浮动工具栏 -->
+          <div class="float-toolbar">
+            <span class="count" id="changeCount">5 处变更</span>
+            <div class="sep"></div>
+            <button id="btnUpdate">更新</button>
+            <div class="sep"></div>
+            <button id="btnDiff">Diff</button>
+            <div class="sep"></div>
+            <button class="primary" id="btnGoCommit">提交</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 提交页 -->
+      <div class="page commit-page" id="page-commit">
+        <div class="status-bar"><span>9:41</span><span>📶 WiFi 🔋</span></div>
+        <div class="commit-nav">
+          <button id="btnBack">取消</button>
+          <span class="title">提交变更</span>
+          <button class="submit" id="btnSubmit">提交</button>
+        </div>
+        <div class="commit-body">
+          <div class="commit-group" id="commitList"></div>
+          <div class="commit-msg">
+            <textarea id="commitMsg" placeholder="描述这次提交…">feat: 更新登录页文案与样式</textarea>
+          </div>
+          <div class="commit-hint">将提交到 trunk · r1285</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer-note">
+    <strong>布局结构：</strong>左 220px 仓库导航 · 中 260px 文件列表 · 右 flex Diff 详情 · 底部居中浮动工具栏（不挡内容）。<br>
+    这是目前最推荐的方案 — 兼顾 iOS 原生感、三栏效率和触控操作。喜欢的话回我「就 J」。
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const files = [
+      { name: 'views/', type: 'folder', status: '', diff: null },
+      { name: 'LoginView.swift', type: 'file', status: 'm', stat: '+2 −1', changed: true,
+        diff: [
+          { t: 'ctx', ln: '40', code: ' struct LoginView: View {' },
+          { t: 'ctx', ln: '41', code: '     var body: some View {' },
+          { t: 'del', ln: '42', code: '-        Text("登录")' },
+          { t: 'add', ln: '42', code: '+        Text("欢迎回来")' },
+          { t: 'add', ln: '43', code: '+            .font(.title2.bold())' },
+          { t: 'ctx', ln: '44', code: '         Button("Sign In") { ... }' },
+        ]},
+      { name: 'AuthService.swift', type: 'file', status: 'a', stat: '+48 −0', changed: true,
+        diff: [
+          { t: 'add', ln: '1', code: '+import Foundation' },
+          { t: 'add', ln: '2', code: '+class AuthService { ... }' },
+        ]},
+      { name: 'AppConfig.plist', type: 'file', status: 'm', stat: '+1 −1', changed: true,
+        diff: [
+          { t: 'del', ln: '8', code: '-    <string>dev</string>' },
+          { t: 'add', ln: '8', code: '+    <string>prod</string>' },
+        ]},
+      { name: 'LegacyAuth.m', type: 'file', status: 'd', stat: '+0 −120', changed: true,
+        diff: [
+          { t: 'del', ln: '1', code: '-// removed legacy auth module' },
+        ]},
+      { name: 'MainTabView.swift', type: 'file', status: '', stat: '', changed: false, diff: null },
+    ];
+
+    let selectedIdx = 1;
+    let filterMode = 'all';
+
+    function renderFiles() {
+      const list = document.getElementById('fileList');
+      const items = filterMode === 'changed' ? files.filter(f => f.changed) : files;
+      list.innerHTML = items.map(f => {
+        const idx = files.indexOf(f);
+        const stClass = f.status || 'none';
+        const stText = { m:'M', a:'A', d:'D', '':'·' }[f.status] || '·';
+        return `<div class="file-item ${idx===selectedIdx?'selected':''}" data-idx="${idx}">
+          <span class="st ${stClass}">${stText}</span>
+          <span class="fname">${f.type==='folder'?'📁 ':''}${f.name}</span>
+        </div>`;
+      }).join('');
+      list.querySelectorAll('.file-item').forEach(el => {
+        el.addEventListener('click', () => selectFile(+el.dataset.idx));
+      });
+    }
+
+    function renderDiff() {
+      const f = files[selectedIdx];
+      document.getElementById('detailTitle').textContent = f.name;
+      document.getElementById('detailStat').textContent = f.stat || '';
+      const area = document.getElementById('diffArea');
+      if (!f.diff) {
+        area.innerHTML = '<div class="empty-diff"><div class="ico">📄</div>选择有变更的文件<br>查看 Diff 对比</div>';
+        area.style.display = 'flex';
+        return;
+      }
+      area.style.display = 'block';
+      area.innerHTML = f.diff.map(d =>
+        `<div class="diff-line ${d.t}"><span class="ln">${d.ln}</span><span class="code">${esc(d.code)}</span></div>`
+      ).join('');
+    }
+
+    function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+    function selectFile(idx) {
+      selectedIdx = idx;
+      renderFiles();
+      renderDiff();
+    }
+
+    function renderCommitList() {
+      const changed = files.filter(f => f.changed);
+      document.getElementById('commitList').innerHTML = changed.map(f => `
+        <div class="commit-row">
+          <input type="checkbox" checked />
+          <span class="st ${f.status}">${{m:'M',a:'A',d:'D'}[f.status]}</span>
+          <span class="name">${f.name}</span>
+        </div>
+      `).join('');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    function switchPage(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + page).classList.add('active');
+      document.querySelectorAll('.page-switch button').forEach(b =>
+        b.classList.toggle('active', b.dataset.page === page)
+      );
+    }
+
+    document.querySelectorAll('.page-switch button').forEach(btn => {
+      btn.addEventListener('click', () => switchPage(btn.dataset.page));
+    });
+
+    document.querySelectorAll('.filter button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterMode = btn.dataset.filter;
+        document.querySelectorAll('.filter button').forEach(b => b.classList.toggle('on', b === btn));
+        renderFiles();
+      });
+    });
+
+    document.getElementById('btnGoCommit').addEventListener('click', () => {
+      renderCommitList();
+      switchPage('commit');
+    });
+    document.getElementById('btnBack').addEventListener('click', () => switchPage('browse'));
+    document.getElementById('btnUpdate').addEventListener('click', () => showToast('✓ 已更新到 r1284'));
+    document.getElementById('btnDiff').addEventListener('click', () => {
+      const f = files.find(x => x.changed);
+      if (f) selectFile(files.indexOf(f));
+      showToast('已跳转到第一个变更文件');
+    });
+    document.getElementById('btnSubmit').addEventListener('click', () => {
+      showToast('✓ 已提交到 r1285');
+      setTimeout(() => switchPage('browse'), 1500);
+    });
+    document.getElementById('btnFilter').addEventListener('click', () => {
+      filterMode = filterMode === 'all' ? 'changed' : 'all';
+      document.querySelectorAll('.filter button').forEach(b =>
+        b.classList.toggle('on', b.dataset.filter === filterMode)
+      );
+      renderFiles();
+    });
+
+    renderFiles();
+    renderDiff();
+  </script>
+</body>
+</html>

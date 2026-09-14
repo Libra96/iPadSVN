@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iPadSVN — 先进布局参考</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    @font-face {
+      font-family: 'Geist';
+      src: local('Inter'), local('SF Pro Display');
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Geist', -apple-system, sans-serif;
+      background: #09090b;
+      color: #fafafa;
+      min-height: 100vh;
+      padding: 28px 20px 40px;
+    }
+
+    .intro { text-align: center; max-width: 640px; margin: 0 auto 24px; }
+    .intro h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 6px; }
+    .intro p { font-size: 13px; color: #71717a; line-height: 1.6; }
+
+    .tabs {
+      display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;
+    }
+    .tabs button {
+      padding: 8px 14px; border-radius: 999px; border: 1px solid #27272a;
+      background: #18181b; color: #a1a1aa; font-size: 12px; font-weight: 500;
+      cursor: pointer; font-family: inherit; transition: 0.2s;
+    }
+    .tabs button.active {
+      background: #fafafa; color: #09090b; border-color: #fafafa;
+    }
+    .tab-desc {
+      text-align: center; font-size: 12px; color: #52525b; margin-bottom: 18px;
+      min-height: 18px;
+    }
+
+    .device {
+      max-width: 1080px; margin: 0 auto;
+      aspect-ratio: 1194/834;
+      background: #27272a;
+      border-radius: 20px;
+      padding: 10px;
+      box-shadow: 0 32px 64px rgba(0,0,0,.5);
+    }
+    .screen {
+      width: 100%; height: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .layout { display: none; width: 100%; height: 100%; }
+    .layout.active { display: flex; flex-direction: column; }
+
+    /* ═══════════════════════════════════════
+       K · Bento 指挥台 (Apple / visionOS 风)
+       ═══════════════════════════════════════ */
+    .k {
+      background: #f5f5f7;
+      color: #1d1d1f;
+    }
+    .k-bar {
+      height: 48px; padding: 0 20px;
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(255,255,255,.72);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(0,0,0,.06);
+    }
+    .k-bar .logo { font-weight: 700; font-size: 15px; letter-spacing: -0.03em; }
+    .k-bar .sp { flex: 1; }
+    .k-bar .sync { font-size: 12px; color: #86868b; font-family: 'JetBrains Mono', monospace; }
+    .k-bento {
+      flex: 1; padding: 16px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 12px;
+      min-height: 0;
+    }
+    .k-tile {
+      background: #fff;
+      border-radius: 20px;
+      padding: 16px 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.04);
+      border: 1px solid rgba(0,0,0,.04);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.25s;
+    }
+    .k-tile:hover { transform: scale(1.015); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    .k-tile.span2 { grid-column: span 2; }
+    .k-tile.span2r { grid-row: span 2; }
+    .k-tile.dark {
+      background: #1d1d1f; color: #f5f5f7;
+    }
+    .k-tile .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #86868b; margin-bottom: 8px; }
+    .k-tile.dark .label { color: #86868b; }
+    .k-tile .big { font-size: 36px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+    .k-tile .sub { font-size: 13px; color: #86868b; margin-top: 6px; }
+    .k-tile.dark .sub { color: #a1a1aa; }
+    .k-file {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,.05);
+      font-size: 13px; font-weight: 500;
+    }
+    .k-file:last-child { border: none; }
+    .k-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .k-dot.m { background: #ff9500; }
+    .k-dot.a { background: #34c759; }
+    .k-diff-mini {
+      flex: 1; font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; line-height: 1.6; color: #86868b; overflow: hidden;
+    }
+    .k-diff-mini .a { color: #248a3d; }
+    .k-diff-mini .d { color: #d70015; }
+    .k-action {
+      margin-top: auto; padding-top: 12px;
+    }
+    .k-btn {
+      width: 100%; padding: 10px; border: none; border-radius: 12px;
+      font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+    }
+    .k-btn.primary { background: #0071e3; color: #fff; }
+    .k-btn.ghost { background: #f5f5f7; color: #1d1d1f; }
+
+    /* ═══════════════════════════════════════
+       L · Spatial 浮层 (VisionOS / Raycast 风)
+       ═══════════════════════════════════════ */
+    .l {
+      background: linear-gradient(160deg, #0c0c12 0%, #151520 40%, #0a1628 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .l-orb {
+      position: absolute; border-radius: 50%; filter: blur(60px); pointer-events: none;
+    }
+    .l-orb.a { width: 300px; height: 300px; background: #3b82f6; opacity: .15; top: -80px; right: 10%; }
+    .l-orb.b { width: 250px; height: 250px; background: #8b5cf6; opacity: .12; bottom: -60px; left: 5%; }
+
+    .l-cmd {
+      position: relative; z-index: 2;
+      margin: 20px auto 0; width: calc(100% - 48px); max-width: 560px;
+      background: rgba(255,255,255,.08);
+      backdrop-filter: blur(40px) saturate(180%);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.3);
+    }
+    .l-cmd kbd {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: #71717a;
+      padding: 4px 8px; border-radius: 6px;
+      background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.08);
+    }
+    .l-cmd input {
+      flex: 1; background: none; border: none; outline: none;
+      font-size: 14px; color: #e4e4e7; font-family: inherit;
+    }
+    .l-cmd input::placeholder { color: #52525b; }
+
+    .l-stage {
+      position: relative; z-index: 2;
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 24px 40px 32px; gap: 20px;
+    }
+    .l-panel {
+      background: rgba(24, 24, 32, 0.65);
+      backdrop-filter: blur(48px) saturate(160%);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 24px;
+      box-shadow: 0 24px 48px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .l-panel.list { width: 34%; max-width: 320px; height: 85%; }
+    .l-panel.diff { flex: 1; max-width: 480px; height: 85%; }
+
+    .l-ph {
+      padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,.06);
+      font-size: 12px; font-weight: 600; color: #a1a1aa;
+      text-transform: uppercase; letter-spacing: .08em;
+    }
+    .l-row {
+      padding: 12px 18px; display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      cursor: pointer; transition: background .15s;
+    }
+    .l-row:hover { background: rgba(255,255,255,.04); }
+    .l-row.on { background: rgba(59,130,246,.12); border-left: 2px solid #3b82f6; }
+    .l-row .n { flex: 1; font-size: 13px; font-weight: 500; color: #fafafa; }
+    .l-row .t { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #71717a; }
+
+    .l-diff-body {
+      flex: 1; overflow: auto; padding: 12px 0;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.65;
+    }
+    .l-dl { padding: 1px 16px; }
+    .l-dl.add { color: #4ade80; background: rgba(74,222,128,.06); }
+    .l-dl.del { color: #f87171; background: rgba(248,113,113,.06); }
+
+    /* ═══════════════════════════════════════
+       M · Timeline 命令台 (Linear / GitHub 风)
+       ═══════════════════════════════════════ */
+    .m { background: #0a0a0a; }
+
+    .m-top {
+      height: 52px; padding: 0 24px;
+      display: flex; align-items: center; gap: 16px;
+      border-bottom: 1px solid #1f1f1f;
+    }
+    .m-top .proj {
+      font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .m-top .proj span { color: #52525b; font-weight: 400; }
+    .m-top .sp { flex: 1; }
+    .m-chip {
+      font-size: 11px; font-family: 'JetBrains Mono', monospace;
+      padding: 4px 10px; border-radius: 6px;
+      background: #18181b; border: 1px solid #27272a; color: #a1a1aa;
+    }
+    .m-chip.live { border-color: #166534; color: #4ade80; background: rgba(74,222,128,.08); }
+
+    .m-body { flex: 1; display: flex; min-height: 0; }
+
+    .m-rail {
+      width: 56px; border-right: 1px solid #1f1f1f;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 16px 0; gap: 4px;
+    }
+    .m-rail button {
+      width: 40px; height: 40px; border-radius: 10px;
+      border: none; background: transparent; color: #52525b;
+      cursor: pointer; display: grid; place-items: center;
+      transition: 0.15s;
+    }
+    .m-rail button.on { background: #27272a; color: #fafafa; }
+    .m-rail button:hover:not(.on) { color: #a1a1aa; }
+
+    .m-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+    .m-hero {
+      padding: 20px 28px 16px;
+      border-bottom: 1px solid #1f1f1f;
+    }
+    .m-hero h2 {
+      font-size: 22px; font-weight: 600; letter-spacing: -0.03em;
+      margin-bottom: 4px;
+    }
+    .m-hero p { font-size: 13px; color: #71717a; }
+
+    .m-stream { flex: 1; overflow-y: auto; padding: 8px 20px 80px; }
+
+    .m-event {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 0 16px;
+      margin-bottom: 4px;
+      cursor: pointer;
+    }
+    .m-event .line-col {
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .m-event .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      border: 2px solid #27272a; background: #0a0a0a;
+      flex-shrink: 0; margin-top: 14px;
+      transition: 0.2s;
+    }
+    .m-event.on .dot { background: #3b82f6; border-color: #3b82f6; box-shadow: 0 0 12px rgba(59,130,246,.5); }
+    .m-event .vline { width: 1px; flex: 1; background: #27272a; min-height: 8px; }
+
+    .m-card {
+      background: #141414;
+      border: 1px solid #1f1f1f;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .m-event.on .m-card { border-color: #3b82f6; background: #111827; }
+    .m-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .m-card-head .fname { flex: 1; font-size: 14px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+    .m-tag {
+      font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .m-tag.M { background: rgba(251,191,36,.15); color: #fbbf24; }
+    .m-tag.A { background: rgba(74,222,128,.12); color: #4ade80; }
+    .m-tag.D { background: rgba(248,113,113,.12); color: #f87171; }
+
+    .m-card-diff {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; line-height: 1.6;
+      background: #0a0a0a; border-radius: 8px;
+      padding: 10px 12px; border: 1px solid #1f1f1f;
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.35s cubic-bezier(.4,0,.2,1), padding 0.35s, margin 0.35s;
+      margin-top: 0; padding-top: 0; padding-bottom: 0;
+    }
+    .m-event.on .m-card-diff {
+      max-height: 120px; padding: 10px 12px; margin-top: 0;
+    }
+    .m-card-diff .a { color: #4ade80; }
+    .m-card-diff .d { color: #f87171; }
+
+    .m-float {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 2px; padding: 4px;
+      background: #18181b; border: 1px solid #27272a;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      z-index: 10;
+    }
+    .m-float button {
+      padding: 10px 20px; border: none; border-radius: 9px;
+      font-size: 13px; font-weight: 600; font-family: inherit;
+      cursor: pointer; background: transparent; color: #a1a1aa;
+      transition: 0.15s;
+    }
+    .m-float button:hover { color: #fafafa; background: #27272a; }
+    .m-float button.go { background: #fafafa; color: #09090b; }
+
+    .footnote {
+      text-align: center; margin-top: 20px;
+      font-size: 12px; color: #52525b; line-height: 1.7; max-width: 560px; margin-left: auto; margin-right: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="intro">
+    <h1>先进布局参考 · 非三栏</h1>
+    <p>来自 Bento Grid、VisionOS Spatial、Linear Timeline 三种 2024–2026 主流范式。iPad 横屏 1194×834。</p>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="active" data-k="k">K · Bento 指挥台</button>
+    <button data-k="l">L · Spatial 浮层</button>
+    <button data-k="m">M · Timeline 命令台</button>
+  </div>
+  <div class="tab-desc" id="tabDesc">Apple 式模块化磁贴 — 一屏看清状态，点磁贴深入操作</div>
+
+  <div class="device">
+    <div class="screen">
+
+      <!-- K: Bento -->
+      <div class="layout k active" id="lay-k">
+        <div class="k-bar">
+          <span class="logo">iPadSVN</span>
+          <span class="sp"></span>
+          <span class="sync">trunk @ 1284</span>
+        </div>
+        <div class="k-bento">
+          <div class="k-tile span2 dark">
+            <div class="label">待提交</div>
+            <div class="big">5</div>
+            <div class="sub">files changed · ready to commit</div>
+            <div class="k-action"><button class="k-btn primary">提交变更</button></div>
+          </div>
+          <div class="k-tile">
+            <div class="label">同步</div>
+            <div class="big" style="font-size:28px">✓</div>
+            <div class="sub">2 分钟前</div>
+            <div class="k-action"><button class="k-btn ghost">更新</button></div>
+          </div>
+          <div class="k-tile">
+            <div class="label">仓库</div>
+            <div style="font-size:15px;font-weight:600;margin-top:4px">mobile-app</div>
+            <div class="sub">https://svn…/trunk</div>
+          </div>
+          <div class="k-tile span2 span2r">
+            <div class="label">变更文件</div>
+            <div class="k-file"><span class="k-dot m"></span>LoginView.swift</div>
+            <div class="k-file"><span class="k-dot a"></span>AuthService.swift</div>
+            <div class="k-file"><span class="k-dot m"></span>AppConfig.plist</div>
+            <div class="k-file"><span class="k-dot d"></span>LegacyAuth.m</div>
+          </div>
+          <div class="k-tile span2">
+            <div class="label">Diff 预览 · LoginView.swift</div>
+            <div class="k-diff-mini">
+              <div class="d">- Text("登录")</div>
+              <div class="a">+ Text("欢迎回来")</div>
+              <div class="a">+     .font(.title2.bold())</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L: Spatial -->
+      <div class="layout l" id="lay-l">
+        <div class="l-orb a"></div>
+        <div class="l-orb b"></div>
+        <div class="l-cmd">
+          <kbd>⌘K</kbd>
+          <input placeholder="搜索文件、执行 svn 命令、跳转 revision…" />
+        </div>
+        <div class="l-stage">
+          <div class="l-panel list">
+            <div class="l-ph">Changes</div>
+            <div class="l-row on"><span class="n">LoginView.swift</span><span class="t">M</span></div>
+            <div class="l-row"><span class="n">AuthService.swift</span><span class="t">A</span></div>
+            <div class="l-row"><span class="n">AppConfig.plist</span><span class="t">M</span></div>
+            <div class="l-row"><span class="n">LegacyAuth.m</span><span class="t">D</span></div>
+          </div>
+          <div class="l-panel diff">
+            <div class="l-ph">Diff</div>
+            <div class="l-diff-body">
+              <div class="l-dl del">- Text("登录")</div>
+              <div class="l-dl add">+ Text("欢迎回来")</div>
+              <div class="l-dl add">+     .font(.title2.bold())</div>
+              <div class="l-dl">  Button("Sign In") { … }</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- M: Timeline -->
+      <div class="layout m" id="lay-m">
+        <div class="m-top">
+          <div class="proj">mobile-app <span>/ trunk</span></div>
+          <div class="sp"></div>
+          <span class="m-chip live">● live</span>
+          <span class="m-chip">r1284</span>
+        </div>
+        <div class="m-body">
+          <div class="m-rail">
+            <button class="on" title="变更">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>
+            </button>
+            <button title="历史">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </button>
+            <button title="设置">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="m-main">
+            <div class="m-hero">
+              <h2>5 changes pending</h2>
+              <p>Select a file to expand diff inline</p>
+            </div>
+            <div class="m-stream" id="stream"></div>
+          </div>
+        </div>
+        <div class="m-float">
+          <button>Update</button>
+          <button>Revert</button>
+          <button class="go">Commit</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <p class="footnote">
+    <strong>K</strong> 适合「打开 App 先看全局」·
+    <strong>L</strong> 适合「Power User + 命令面板」·
+    <strong>M</strong> 适合「按时间线审变更」<br>
+    选一个字母（或组合），我按那个做正式 UI，不再做三栏。
+  </p>
+
+  <script>
+    const descs = {
+      k: 'Apple 式模块化磁贴 — 一屏看清状态，点磁贴深入操作',
+      l: 'VisionOS / Raycast 浮层 — 命令面板 + 玻璃面板悬浮，无侧栏',
+      m: 'Linear 式 Timeline — 时间线流 + 内联展开 Diff，左侧图标轨'
+    };
+
+    const events = [
+      { name: 'LoginView.swift', tag: 'M', diff: [['d','- Text("登录")'], ['a','+ Text("欢迎回来")'], ['a','+     .font(.title2.bold())']] },
+      { name: 'AuthService.swift', tag: 'A', diff: [['a','+ import Foundation'], ['a','+ class AuthService { … }']] },
+      { name: 'AppConfig.plist', tag: 'M', diff: [['d','- <string>dev</string>'], ['a','+ <string>prod</string>']] },
+      { name: 'LegacyAuth.m', tag: 'D', diff: [['d','- // removed legacy module']] },
+    ];
+
+    document.getElementById('stream').innerHTML = events.map((e, i) => `
+      <div class="m-event ${i===0?'on':''}" data-i="${i}">
+        <div class="line-col">
+          <div class="dot"></div>
+          <div class="vline"></div>
+        </div>
+        <div class="m-card">
+          <div class="m-card-head">
+            <span class="fname">${e.name}</span>
+            <span class="m-tag ${e.tag}">${e.tag}</span>
+          </div>
+          <div class="m-card-diff">
+            ${e.diff.map(([t,l]) => `<div class="${t}">${l}</div>`).join('')}
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    document.querySelectorAll('.m-event').forEach(el => {
+      el.addEventListener('click', () => {
+        document.querySelectorAll('.m-event').forEach(x => x.classList.remove('on'));
+        el.classList.add('on');
+      });
+    });
+
+    document.querySelectorAll('.l-row').forEach((row, i) => {
+      row.addEventListener('click', () => {
+        document.querySelectorAll('.l-row').forEach(r => r.classList.remove('on'));
+        row.classList.add('on');
+      });
+    });
+
+    document.getElementById('tabs').addEventListener('click', e => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const k = btn.dataset.k;
+      document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.layout').forEach(l => l.classList.toggle('active', l.id === 'lay-' + k));
+      document.getElementById('tabDesc').textContent = descs[k];
+    });
+  </script>
+</body>
+</html>

@@ -224,20 +224,20 @@ build_sqlite_amalgamation() {
   cp sqlite3.h sqlite3ext.h "${PREFIX}/include/"
 }
 
+patch_subversion_configure_expat() {
+  local cfg="${DEPS_DIR}/subversion-${SVN_VERSION}/configure"
+  # Cross-compiling cannot reliably pass Subversion's Expat link/compile probe.
+  # We already built static expat; force the probe to succeed with our paths.
+  sed -i.bak \
+    's/as_fn_error \$? "Expat not found" "\$LINENO" 5/svn_lib_expat=yes; SVN_XML_INCLUDES="-I'"${PREFIX}"'\/include"; SVN_XML_LIBS="-L'"${PREFIX}"'\/lib -lexpat"; { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes (iOS cross)" >\&5; $as_echo "yes" >\&6; }/' \
+    "${cfg}"
+}
+
 build_subversion() {
   log "Building Subversion (libsvn)..."
   cd "${DEPS_DIR}/subversion-${SVN_VERSION}"
   make clean >/dev/null 2>&1 || true
-
-  # Subversion's Expat probe uses CPPFLAGS (not CFLAGS). Inject paths via CONFIG_SITE
-  # so the cross-compile compile check finds our static expat headers.
-  local config_site="${DEPS_DIR}/subversion-${SVN_VERSION}/subversion-ios.site"
-  cat > "${config_site}" <<EOF
-CPPFLAGS="-I${PREFIX}/include \${CPPFLAGS}"
-LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
-LIBS="${PREFIX}/lib/libexpat.a"
-EOF
-  export CONFIG_SITE="${config_site}"
+  patch_subversion_configure_expat
 
   ./configure \
     --host="${HOST}" \
@@ -258,15 +258,15 @@ EOF
     --with-libs="${PREFIX}/lib" \
     --with-editor=none \
     CC="${CC}" \
-    CFLAGS="${CFLAGS} -include ${ROOT}/scripts/ios-svn-compat.h -I${PREFIX}/include/apr-1 -I${PREFIX}/include/apr-util-1" \
+    CFLAGS="${CFLAGS} -I${PREFIX}/include/apr-1 -I${PREFIX}/include/apr-util-1" \
     CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include" \
     LDFLAGS="${LDFLAGS} -L${PREFIX}/lib" \
-    LIBS="${PREFIX}/lib/libexpat.a" \
     ac_cv_path_EGREP=/usr/bin/grep \
     ac_cv_path_AWK=/usr/bin/awk
 
-  unset CONFIG_SITE
-  make -j"$(sysctl -n hw.ncpu)" install
+  make -j"$(sysctl -n hw.ncpu)" \
+    CFLAGS="${CFLAGS} -include ${ROOT}/scripts/ios-svn-compat.h -I${PREFIX}/include/apr-1 -I${PREFIX}/include/apr-util-1" \
+    install
 }
 
 merge_static_libs() {
